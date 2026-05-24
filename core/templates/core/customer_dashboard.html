@@ -1,0 +1,372 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Client Dashboard | Jothi Solar Solutions{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h1 class="fw-bold text-white mb-1">Welcome back, <span class="text-gradient-gold">{{ request.user.first_name|default:request.user.username }}</span>!</h1>
+        <p class="text-secondary">Track the real-time progress and payment details of your solar project.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
+            <i class="bi bi-shield-check me-1"></i> Account Activated
+        </span>
+    </div>
+</div>
+
+{% if has_project %}
+    <!-- Real-time Metrics Row -->
+    <div class="row mb-4 g-4">
+        <!-- Financial Card 1: Total Value -->
+        <div class="col-md-4">
+            <div class="card glass-card p-4 border-0 h-100">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="metric-badge bg-primary-subtle text-primary">
+                        <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-secondary small fw-semibold mb-0">Total Project Price</h6>
+                        <h3 class="fw-extrabold text-white mb-0">₹{{ project.total_value|floatformat:2 }}</h3>
+                    </div>
+                </div>
+                <div class="text-secondary small">Total agreed price for your system.</div>
+            </div>
+        </div>
+
+        <!-- Financial Card 2: Advances Paid -->
+        <div class="col-md-4">
+            <div class="card glass-card p-4 border-0 h-100" style="border-bottom: 3px solid var(--accent-success) !important;">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="metric-badge bg-success-subtle text-success">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-secondary small fw-semibold mb-0">Advance Payment Done</h6>
+                        <h3 class="fw-extrabold text-white mb-0">₹{{ project.advances_paid|floatformat:2 }}</h3>
+                    </div>
+                </div>
+                <div class="text-secondary small">Amount already paid by you.</div>
+            </div>
+        </div>
+
+        <!-- Financial Card 3: Remaining Balance -->
+        <div class="col-md-4">
+            <div class="card glass-card p-4 border-0 h-100" style="border-bottom: 3px solid var(--accent-gold) !important;">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="metric-badge bg-warning-subtle text-warning">
+                        <i class="bi bi-calculator"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-secondary small fw-semibold mb-0">Balance Amount Due</h6>
+                        <h3 class="fw-extrabold text-white mb-0">₹{{ project.remaining_balance|floatformat:2 }}</h3>
+                    </div>
+                </div>
+                <div class="text-secondary small">Amount due when project is fully completed.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Project Installation Timeline -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card glass-card p-4 p-md-5 border-0">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold text-white mb-0">
+                        <i class="bi bi-activity text-warning me-2 animate-pulse"></i> Project Progress Tracker
+                    </h4>
+                    <span class="badge bg-warning text-dark px-3 py-2 small fw-bold">{{ project.get_status_display }}</span>
+                </div>
+
+                <!-- Process Steps Tracker -->
+                <div class="row mt-4 justify-content-between position-relative d-none d-lg-flex">
+                    <!-- Progress Connecting Line background -->
+                    <div class="position-absolute top-50 start-0 translate-y-50 bg-secondary" style="height: 3px; width: 95%; left: 2.5% !important; z-index: 1;"></div>
+                    
+                    <!-- Steps Definition -->
+                    <!-- Step 1: Site Survey -->
+                    <div class="col text-center position-relative" style="z-index: 2;">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center fw-bold {% if project.status == 'PENDING_APPROVAL' %}bg-secondary text-white-50{% elif project.status == 'SITE_SURVEY' %}bg-warning text-dark border border-warning{% else %}bg-success text-white{% endif %}" style="width: 45px; height: 45px; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);">
+                            {% if project.status != 'PENDING_APPROVAL' and project.status != 'SITE_SURVEY' %}<i class="bi bi-check-lg fs-5"></i>{% else %}1{% endif %}
+                        </div>
+                        <h6 class="mt-3 mb-1 small fw-bold {% if project.status == 'SITE_SURVEY' %}text-warning{% elif project.status != 'PENDING_APPROVAL' %}text-success{% else %}text-secondary{% endif %}">Site Survey</h6>
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Rooftop Inspection</small>
+                    </div>
+
+                    <!-- Step 2: Engineering -->
+                    <div class="col text-center position-relative" style="z-index: 2;">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center fw-bold {% if project.status in 'PENDING_APPROVAL,SITE_SURVEY' %}bg-secondary text-white-50{% elif project.status == 'ENGINEERING' %}bg-warning text-dark{% else %}bg-success text-white{% endif %}" style="width: 45px; height: 45px;">
+                            {% if project.status not in 'PENDING_APPROVAL,SITE_SURVEY,ENGINEERING' %}<i class="bi bi-check-lg fs-5"></i>{% else %}2{% endif %}
+                        </div>
+                        <h6 class="mt-3 mb-1 small fw-bold {% if project.status == 'ENGINEERING' %}text-warning{% elif project.status not in 'PENDING_APPROVAL,SITE_SURVEY' %}text-success{% else %}text-secondary{% endif %}">Design & Layout</h6>
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">System Drawings</small>
+                    </div>
+
+                    <!-- Step 3: Permitting -->
+                    <div class="col text-center position-relative" style="z-index: 2;">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center fw-bold {% if project.status in 'PENDING_APPROVAL,SITE_SURVEY,ENGINEERING' %}bg-secondary text-white-50{% elif project.status == 'PERMITTING' %}bg-warning text-dark{% else %}bg-success text-white{% endif %}" style="width: 45px; height: 45px;">
+                            {% if project.status not in 'PENDING_APPROVAL,SITE_SURVEY,ENGINEERING,PERMITTING' %}<i class="bi bi-check-lg fs-5"></i>{% else %}3{% endif %}
+                        </div>
+                        <h6 class="mt-3 mb-1 small fw-bold {% if project.status == 'PERMITTING' %}text-warning{% elif project.status not in 'PENDING_APPROVAL,SITE_SURVEY,ENGINEERING' %}text-success{% else %}text-secondary{% endif %}">Permission & Paperwork</h6>
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Govt Clearance</small>
+                    </div>
+
+                    <!-- Step 4: Installation -->
+                    <div class="col text-center position-relative" style="z-index: 2;">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center fw-bold {% if project.status in 'PENDING_APPROVAL,SITE_SURVEY,ENGINEERING,PERMITTING' %}bg-secondary text-white-50{% elif project.status == 'INSTALLATION' %}bg-warning text-dark{% else %}bg-success text-white{% endif %}" style="width: 45px; height: 45px;">
+                            {% if project.status not in 'PENDING_APPROVAL,SITE_SURVEY,ENGINEERING,PERMITTING,INSTALLATION' %}<i class="bi bi-check-lg fs-5"></i>{% else %}4{% endif %}
+                        </div>
+                        <h6 class="mt-3 mb-1 small fw-bold {% if project.status == 'INSTALLATION' %}text-warning{% elif project.status not in 'PENDING_APPROVAL,SITE_SURVEY,ENGINEERING,PERMITTING' %}text-success{% else %}text-secondary{% endif %}">Active Installation</h6>
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Racking & Panels Placement</small>
+                    </div>
+
+                    <!-- Step 5: Inspection -->
+                    <div class="col text-center position-relative" style="z-index: 2;">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center fw-bold {% if project.status in 'PENDING_APPROVAL,SITE_SURVEY,ENGINEERING,PERMITTING,INSTALLATION' %}bg-secondary text-white-50{% elif project.status in 'INSPECTION,INTERCONNECTION' %}bg-warning text-dark{% else %}bg-success text-white{% endif %}" style="width: 45px; height: 45px;">
+                            {% if project.status in 'COMPLETED' %}<i class="bi bi-check-lg fs-5"></i>{% else %}5{% endif %}
+                        </div>
+                        <h6 class="mt-3 mb-1 small fw-bold {% if project.status in 'INSPECTION,INTERCONNECTION' %}text-warning{% elif project.status in 'COMPLETED' %}text-success{% else %}text-secondary{% endif %}">Inspections</h6>
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Safety & Quality Audits</small>
+                    </div>
+
+                    <!-- Step 6: Completed -->
+                    <div class="col text-center position-relative" style="z-index: 2;">
+                        <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center fw-bold {% if project.status == 'COMPLETED' %}bg-success text-white{% else %}bg-secondary text-white-50{% endif %}" style="width: 45px; height: 45px;">
+                            <i class="bi bi-flag-fill fs-6"></i>
+                        </div>
+                        <h6 class="mt-3 mb-1 small fw-bold {% if project.status == 'COMPLETED' %}text-success{% else %}text-secondary{% endif %}">Completed & Turned On</h6>
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Power turned on!</small>
+                    </div>
+                </div>
+
+                <!-- Responsive Vertical Timeline for Mobile -->
+                <div class="d-flex d-lg-none flex-column gap-3 mt-3">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-circle-fill me-3 {% if project.status != 'PENDING_APPROVAL' %}text-success{% else %}text-secondary{% endif %}"></i>
+                        <span class="fw-semibold">1. Site Survey & Assessment</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-circle-fill me-3 {% if project.status not in 'PENDING_APPROVAL,SITE_SURVEY' %}text-success{% elif project.status == 'ENGINEERING' %}text-warning{% else %}text-secondary{% endif %}"></i>
+                        <span class="fw-semibold">2. Design & Layout Drawing</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-circle-fill me-3 {% if project.status not in 'PENDING_APPROVAL,SITE_SURVEY,ENGINEERING' %}text-success{% elif project.status == 'PERMITTING' %}text-warning{% else %}text-secondary{% endif %}"></i>
+                        <span class="fw-semibold">3. Permission & Paperwork</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-circle-fill me-3 {% if project.status not in 'PENDING_APPROVAL,SITE_SURVEY,ENGINEERING,PERMITTING' %}text-success{% elif project.status == 'INSTALLATION' %}text-warning{% else %}text-secondary{% endif %}"></i>
+                        <span class="fw-semibold">4. Racking & Panels Placement</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-circle-fill me-3 {% if project.status in 'COMPLETED' %}text-success{% elif project.status in 'INSPECTION,INTERCONNECTION' %}text-warning{% else %}text-secondary{% endif %}"></i>
+                        <span class="fw-semibold">5. Safety & Quality Audits</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill me-3 {% if project.status == 'COMPLETED' %}text-success{% else %}text-secondary{% endif %}"></i>
+                        <span class="fw-semibold">6. Completed & Turned On</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- On-Site Crew & Incharge Details -->
+    <div class="row g-4 mb-4">
+        <!-- Project Crew Information -->
+        <div class="col-md-6">
+            <div class="card glass-card p-4 border-0 h-100">
+                <h5 class="fw-bold text-white mb-3"><i class="bi bi-people-fill text-warning me-2"></i> On-Site Crew & Timeline</h5>
+                <div class="row mb-3 g-2">
+                    <div class="col-6 bg-dark p-3 rounded-3">
+                        <small class="text-secondary d-block">Start Date</small>
+                        <strong class="text-white small"><i class="bi bi-calendar-check text-warning me-1"></i> {{ project.start_date|default:"TBD" }}</strong>
+                    </div>
+                    <div class="col-6 bg-dark p-3 rounded-3">
+                        <small class="text-secondary d-block">Target Completion</small>
+                        <strong class="text-white small"><i class="bi bi-calendar-event text-warning me-1"></i> {{ project.end_date|default:"TBD" }}</strong>
+                    </div>
+                </div>
+
+                <div class="bg-dark p-3 rounded-3 mb-2">
+                    <small class="text-secondary d-block mb-1">Laborers assisting on-site</small>
+                    <span class="badge bg-warning text-dark fs-6">{{ project.laborers_count }} Laborers</span>
+                </div>
+
+                <div class="bg-dark p-3 rounded-3 flex-grow-1">
+                    <small class="text-secondary d-block mb-2">Crew Details</small>
+                    {% if project.crew_details %}
+                        <p class="text-white small mb-0">{{ project.crew_details|linebreaksbr }}</p>
+                    {% else %}
+                        <p class="text-secondary small mb-0 italic">No specific crew details uploaded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Incharge Direct Contact -->
+        <div class="col-md-6">
+            <div class="card glass-card p-4 border-0 h-100 justify-content-between">
+                <div>
+                    <h5 class="fw-bold text-white mb-3"><i class="bi bi-patch-check-fill text-gradient-cyan me-2"></i> Project Manager</h5>
+                    
+                    {% if project.staff_incharge %}
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="bg-primary text-white rounded-circle metric-badge d-flex align-items-center justify-content-center fw-bold me-3">
+                                {{ project.staff_incharge.profile_picture_initials }}
+                            </div>
+                            <div>
+                                <h6 class="fw-bold text-white mb-0">{{ project.staff_incharge.get_full_name }}</h6>
+                                <small class="text-secondary">Assigned Operations Manager</small>
+                            </div>
+                        </div>
+
+                        <div class="bg-dark p-3 rounded-3 mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-secondary small">Contact Number</span>
+                                <strong class="text-white small">{{ project.staff_incharge.phone_number|default:"Not Listed" }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-secondary small">WhatsApp Contact</span>
+                                <strong class="text-white small">{{ project.staff_incharge.whatsapp_number|default:"Not Listed" }}</strong>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info border-0 bg-info-subtle text-info-emphasis rounded-4 small">
+                            <i class="bi bi-info-circle-fill me-2"></i> A manager will be assigned to your project soon.
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if project.staff_incharge %}
+                    <div class="row g-2">
+                        <!-- Direct Call -->
+                        <div class="col-6">
+                            {% if project.staff_incharge.phone_number %}
+                                <a href="tel:{{ project.staff_incharge.phone_number }}" class="btn btn-outline-light w-100 py-3 rounded-3 small">
+                                    <i class="bi bi-telephone-outbound me-2"></i> Call Incharge
+                                </a>
+                            {% else %}
+                                <button class="btn btn-outline-light w-100 py-3 rounded-3 small" disabled>No Phone Number</button>
+                            {% endif %}
+                        </div>
+                        <!-- Click to WhatsApp -->
+                        <div class="col-6">
+                            {% if project.staff_incharge.whatsapp_number %}
+                                <a href="https://wa.me/{{ project.staff_incharge.whatsapp_number }}?text=Hello%20{{ project.staff_incharge.first_name }}%20I%20have%20a%20question%20regarding%20my%20solar%20project" target="_blank" class="btn btn-success w-100 py-3 rounded-3 small text-white" style="background-color: #25d366; border: none;">
+                                    <i class="bi bi-whatsapp me-2"></i> WhatsApp Chat
+                                </a>
+                            {% else %}
+                                <button class="btn btn-success w-100 py-3 rounded-3 small" style="background-color: #25d366; border: none;" disabled>No WhatsApp</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <!-- Empty State Dashboard -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card glass-card p-5 text-center border-0">
+                <i class="bi bi-sun text-warning fs-1 mb-3 animate-pulse"></i>
+                <h3 class="fw-bold text-white mb-2">Project Drafting in Progress</h3>
+                <p class="text-secondary max-width-500 mx-auto">
+                    Your account has been successfully approved! Our electrical engineers are now designing the layout drawing and paperwork for your physical property.
+                </p>
+                <div class="bg-dark p-4 rounded-4 mt-4 text-start max-width-600 mx-auto">
+                    <h6 class="fw-bold text-white mb-2"><i class="bi bi-info-circle text-warning me-2"></i> Expected Timeline</h6>
+                    <p class="text-secondary small mb-0">
+                        Once the site layout completes, your project metrics (total value, advances paid, start dates, laborers, and assigned crew details) will automatically compile here in real-time.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+    <!-- Support & Complaints Center -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card glass-card p-4 p-md-5 border-0">
+                <div class="row align-items-center mb-4">
+                    <div class="col-md-6">
+                        <h4 class="fw-bold text-white mb-1"><i class="bi bi-chat-square-text-fill text-warning me-2"></i> Support & Complaints Center</h4>
+                        <p class="text-secondary small mb-0">Have an issue, feedback, or a safety concern? Raise a complaint here for immediate action by Jothi Solar Solutions admins.</p>
+                    </div>
+                    <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                        <button class="btn btn-gold hover-lift text-white" type="button" data-bs-toggle="collapse" data-bs-target="#newComplaintCollapse">
+                            <i class="bi bi-plus-circle me-1"></i> File a New Complaint
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Collapsible New Complaint Form -->
+                <div class="collapse" id="newComplaintCollapse">
+                    <div class="card collapse-card p-4 mb-4" style="border-color: rgba(251, 191, 36, 0.25) !important;">
+                        <h5 class="fw-bold text-gradient-gold mb-3 small"><i class="bi bi-pencil-fill me-1"></i> Register Your Complaint</h5>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="raise_complaint">
+                            <div class="mb-3">
+                                <label class="form-label text-white small fw-semibold">Subject / Title</label>
+                                {{ complaint_form.subject }}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-white small fw-semibold">Detailed Description</label>
+                                {{ complaint_form.description }}
+                            </div>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#newComplaintCollapse">Cancel</button>
+                                <button type="submit" class="btn btn-gold btn-sm text-white">Submit Ticket</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Complaints Registry / List -->
+                <h5 class="fw-bold text-white mb-3 small">Your Submitted Support Tickets</h5>
+                {% if complaints %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle border-0 small">
+                            <thead>
+                                <tr class="text-secondary">
+                                    <th>Date Raised</th>
+                                    <th>Subject</th>
+                                    <th>Details</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for comp in complaints %}
+                                    <tr>
+                                        <td class="text-secondary-50">{{ comp.created_at|date:"M d, Y H:i" }}</td>
+                                        <td class="fw-bold text-white">{{ comp.subject }}</td>
+                                        <td class="text-secondary">{{ comp.description }}</td>
+                                        <td>
+                                            {% if comp.status == 'RESOLVED' %}
+                                                <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1">
+                                                    <i class="bi bi-check-circle-fill me-1"></i> Resolved on {{ comp.resolved_at|date:"M d, Y" }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-warning bg-opacity-20 text-warning border border-warning-subtle px-2 py-1">
+                                                    <i class="bi bi-clock-history me-1"></i> Pending Review
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 bg-dark rounded-4">
+                        <i class="bi bi-emoji-smile text-secondary fs-3 mb-2"></i>
+                        <p class="text-secondary small mb-0">No active complaints found. Thank you for choosing Jothi Solar Solutions!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

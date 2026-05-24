@@ -1,0 +1,43 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Account Pending Approval | Jothi Solar Solutions{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-6 text-center">
+        <!-- Pending Card -->
+        <div class="card glass-card p-5 border-0">
+            <div class="mb-4">
+                <!-- Solar pulse animation simulation -->
+                <div class="d-inline-flex justify-content-center align-items-center bg-dark rounded-circle" style="width: 100px; height: 100px; border: 2px solid var(--accent-gold); box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);">
+                    <i class="bi bi-clock-history text-gradient-gold fs-1"></i>
+                </div>
+            </div>
+            
+            <h2 class="fw-bold text-white mb-3">Verification Pending</h2>
+            <p class="text-secondary mb-4">
+                Thank you for registering, <strong class="text-white">{{ pending_username }}</strong>! Your temporary login credentials have been created successfully.
+            </p>
+            
+            <div class="text-start bg-dark p-4 rounded-4 mb-4" style="border-left: 4px solid var(--accent-gold);">
+                <h6 class="fw-bold text-white mb-2"><i class="bi bi-shield-check text-warning me-2"></i> What happens next?</h6>
+                <ol class="text-secondary small mb-0 px-3">
+                    <li class="mb-2">An administrator will verify your address and solar requirements.</li>
+                    <li class="mb-2">Your dedicated project incharge will be assigned to design your customized system.</li>
+                    <li class="mb-2">Your account will be approved & activated, and your live installation timeline will populate here.</li>
+                </ol>
+            </div>
+            
+            <p class="text-secondary small mb-4">
+                Feel free to check back shortly once our administration team has verified your credentials.
+            </p>
+            
+            <div class="d-flex gap-3 justify-content-center">
+                <a href="{% url 'login' %}" class="btn btn-gold">
+                    <i class="bi bi-box-arrow-left me-1"></i> Return to Login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

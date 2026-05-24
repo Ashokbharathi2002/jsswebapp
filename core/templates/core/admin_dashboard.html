@@ -1,0 +1,1109 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Admin Center | Jothi Solar Solutions{% endblock %}
+
+{% block extra_css %}
+<style>
+    .nav-pills .nav-link {
+        color: var(--text-secondary);
+        font-weight: 600;
+        background-color: transparent !important;
+        border: 1.5px solid var(--accent-gold);
+        border-radius: 10px;
+        transition: all 0.2s ease;
+    }
+    .nav-pills .nav-link.active {
+        color: #050811 !important;
+        background-color: var(--accent-gold) !important;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    .nav-pills .nav-link:hover:not(.active) {
+        color: var(--accent-gold) !important;
+        background-color: rgba(16, 185, 129, 0.05) !important;
+    }
+    .table-responsive {
+        background-color: rgba(5, 8, 17, 0.4);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+    .table td, .table th {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 12px 16px;
+    }
+    .collapse-card {
+        background-color: rgba(10, 14, 26, 0.6);
+        border: 1px solid rgba(16, 185, 129, 0.15);
+        border-radius: 12px;
+    }
+    .action-btn-pill {
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 5px 12px;
+        transition: all 0.2s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Welcome & Key Administrative Stats -->
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h1 class="fw-bold text-white mb-1">Solar Panel Company | <span class="text-gradient-gold">Admin Center</span></h1>
+        <p class="text-secondary">Approve client logins, assign staffleads, manage employees, track attendance, and dispatch construction teams.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill small fw-bold">
+            <i class="bi bi-shield-lock-fill me-1"></i> Admin Access
+        </span>
+    </div>
+</div>
+
+<!-- Admin Metrics Summary -->
+<div class="row g-4 mb-4">
+    <!-- Active Installations -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card glass-card p-3 border-0 h-100">
+            <div class="d-flex align-items-center">
+                <div class="metric-badge bg-primary-subtle text-primary">
+                    <i class="bi bi-sun-fill"></i>
+                </div>
+                <div>
+                    <h6 class="text-secondary small fw-semibold mb-0">Active Projects</h6>
+                    <h3 class="fw-bold text-white mb-0">{{ active_installations }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completed Installations -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card glass-card p-3 border-0 h-100">
+            <div class="d-flex align-items-center">
+                <div class="metric-badge bg-success-subtle text-success">
+                    <i class="bi bi-building-check"></i>
+                </div>
+                <div>
+                    <h6 class="text-secondary small fw-semibold mb-0">Completed</h6>
+                    <h3 class="fw-bold text-white mb-0">{{ completed_installations }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Registered Clients -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card glass-card p-3 border-0 h-100">
+            <div class="d-flex align-items-center">
+                <div class="metric-badge bg-info-subtle text-info">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div>
+                    <h6 class="text-secondary small fw-semibold mb-0">Total Clients</h6>
+                    <h3 class="fw-bold text-white mb-0">{{ total_clients }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Awaiting Approvals -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card glass-card p-3 border-0 h-100" style="border-left: 3px solid {% if pending_approvals_count > 0 %}var(--accent-danger){% else %}var(--border-color){% endif %} !important;">
+            <div class="d-flex align-items-center">
+                <div class="metric-badge {% if pending_approvals_count > 0 %}bg-danger text-white{% else %}bg-secondary text-secondary-50{% endif %}">
+                    <i class="bi bi-person-exclamation"></i>
+                </div>
+                <div>
+                    <h6 class="text-secondary small fw-semibold mb-0">Pending Approvals</h6>
+                    <h3 class="fw-bold text-white mb-0">{{ pending_approvals_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Management Card -->
+<div class="row">
+    <div class="col-12">
+        <div class="card glass-card border-0 p-4">
+            
+            <!-- Navigation Tabs Pills -->
+            <ul class="nav nav-pills g-2 mb-4" id="adminTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link me-2 active" id="approvals-tab" data-bs-toggle="tab" data-bs-target="#approvals-pane" type="button" role="tab" aria-controls="approvals-pane" aria-selected="true">
+                        <i class="bi bi-person-exclamation me-1"></i> Pending Approvals ({{ pending_approvals_count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link me-2" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff-pane" type="button" role="tab" aria-controls="staff-pane" aria-selected="false">
+                        <i class="bi bi-person-workspace me-1"></i> Manage Staff
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link me-2" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees-pane" type="button" role="tab" aria-controls="employees-pane" aria-selected="false">
+                        <i class="bi bi-people-fill me-1"></i> Manage Employees
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link me-2" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance-pane" type="button" role="tab" aria-controls="attendance-pane" aria-selected="false">
+                        <i class="bi bi-calendar-check-fill me-1"></i> Attendance Tracker
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link me-2" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects-pane" type="button" role="tab" aria-controls="projects-pane" aria-selected="false">
+                        <i class="bi bi-gear-fill me-1"></i> Deploy Project
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers-pane" type="button" role="tab" aria-controls="customers-pane" aria-selected="false">
+                        <i class="bi bi-person-badge-fill me-1"></i> Clients & Customers
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="complaints-tab" data-bs-toggle="tab" data-bs-target="#complaints-pane" type="button" role="tab" aria-controls="complaints-pane" aria-selected="false">
+                        <i class="bi bi-chat-square-text-fill me-1"></i> Complaints Inbox 
+                        {% if pending_complaints_count > 0 %}
+                            <span class="badge bg-danger ms-1 animate-pulse" style="font-size: 0.65rem;">{{ pending_complaints_count }}</span>
+                        {% endif %}
+                    </button>
+                </li>
+            </ul>
+
+            <hr class="border-secondary mb-4" style="opacity: 0.15;">
+
+            <!-- Tabs Content -->
+            <div class="tab-content" id="adminTabsContent">
+                
+                <!-- Tab 1: Pending Approvals -->
+                <div class="tab-pane fade show active" id="approvals-pane" role="tabpanel" aria-labelledby="approvals-tab">
+                    <h5 class="fw-bold text-white mb-2">Review Pending Logins</h5>
+                    <p class="text-secondary small mb-4">Worker or client registrations that are currently locked. Activate them so they can log in.</p>
+                    
+                    {% if pending_customers %}
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover align-middle border-0 small">
+                                <thead>
+                                    <tr class="text-secondary">
+                                        <th>Username</th>
+                                        <th>Name & Email</th>
+                                        <th>Contact</th>
+                                        <th>Role</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in pending_customers %}
+                                        <tr>
+                                            <td class="fw-bold text-white">{{ user.username }}</td>
+                                            <td>
+                                                <div>{{ user.get_full_name|default:"Not Provided" }}</div>
+                                                <div class="text-secondary-50" style="font-size: 0.75rem;">{{ user.email }}</div>
+                                            </td>
+                                            <td>
+                                                <div>Phone: {{ user.phone_number|default:"N/A" }}</div>
+                                                <div>WA: {{ user.whatsapp_number|default:"N/A" }}</div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary-subtle text-secondary small">{{ user.get_role_display }}</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{% url 'admin_approve_customer' user.id %}" class="btn btn-success btn-sm action-btn-pill border-0 text-white"><i class="bi bi-check-circle-fill me-1"></i>Approve & Activate</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-emoji-smile text-secondary fs-1 mb-2"></i>
+                            <h6 class="text-white fw-bold">All caught up!</h6>
+                            <p class="text-secondary small">No customer or staff registrations are currently awaiting approval.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Tab 2: Manage Staff -->
+                <div class="tab-pane fade" id="staff-pane" role="tabpanel" aria-labelledby="staff-tab">
+                    <div class="row g-4">
+                        <!-- Staff List -->
+                        <div class="col-lg-8">
+                            <h5 class="fw-bold text-white mb-2">Staff & Worker Directory</h5>
+                            <p class="text-secondary small mb-4">View approved staff leads, edit worker details, and manage their assigned projects.</p>
+                            
+                            {% if staff_data_list %}
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover align-middle border-0 small">
+                                        <thead>
+                                            <tr class="text-secondary">
+                                                <th>Staff User</th>
+                                                <th>Unique ID</th>
+                                                <th>Handling Stats</th>
+                                                <th>Contact Info</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in staff_data_list %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold text-white">{{ item.staff.username }}</div>
+                                                        <div class="text-secondary mt-1 italic leading-tight" style="font-size: 0.75rem;">Bio: {{ item.staff.bio|default:"No biodata." }}</div>
+                                                    </td>
+                                                    <td class="fw-bold text-gradient-gold">{{ item.staff.employee_id|default:"TBD" }}</td>
+                                                    <td>
+                                                        <div>Active: <strong class="text-white">{{ item.active_count }}</strong></div>
+                                                        <div>Closed: <strong class="text-success">{{ item.completed_count }}</strong></div>
+                                                    </td>
+                                                    <td>
+                                                        <div>{{ item.staff.email }}</div>
+                                                        <div class="text-secondary-50" style="font-size: 0.75rem;">Phone: {{ item.staff.phone_number }}</div>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-outline-gold action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#edit-staff-admin-{{ item.staff.id }}">
+                                                            <i class="bi bi-pencil-fill me-1"></i>Edit
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <!-- Collapsible Edit Row -->
+                                                <tr>
+                                                    <td colspan="5" class="p-0 border-0">
+                                                        <div class="collapse" id="edit-staff-admin-{{ item.staff.id }}">
+                                                            <div class="card collapse-card p-4 my-2 mx-3">
+                                                                <h6 class="fw-bold text-white mb-3">Update Details for Staff: {{ item.staff.username }}</h6>
+                                                                <form method="POST">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="action" value="edit_staff">
+                                                                    <input type="hidden" name="staff_id" value="{{ item.staff.id }}">
+                                                                    
+                                                                    <div class="row">
+                                                                        <div class="col-md-6 mb-3">
+                                                                            <label class="form-label text-white-50 small">Email</label>
+                                                                            {{ item.edit_form.email }}
+                                                                        </div>
+                                                                        <div class="col-md-3 mb-3">
+                                                                            <label class="form-label text-white-50 small">First Name</label>
+                                                                            {{ item.edit_form.first_name }}
+                                                                        </div>
+                                                                        <div class="col-md-3 mb-3">
+                                                                            <label class="form-label text-white-50 small">Last Name</label>
+                                                                            {{ item.edit_form.last_name }}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="row">
+                                                                        <div class="col-md-4 mb-3">
+                                                                            <label class="form-label text-white-50 small">Phone</label>
+                                                                            {{ item.edit_form.phone_number }}
+                                                                        </div>
+                                                                        <div class="col-md-4 mb-3">
+                                                                            <label class="form-label text-white-50 small">WhatsApp</label>
+                                                                            {{ item.edit_form.whatsapp_number }}
+                                                                        </div>
+                                                                        <div class="col-md-4 mb-3">
+                                                                            <label class="form-label text-white-50 small">Unique ID</label>
+                                                                            {{ item.edit_form.employee_id }}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label text-white-50 small">Bio details</label>
+                                                                        {{ item.edit_form.bio }}
+                                                                    </div>
+                                                                    <div class="d-flex justify-content-end gap-2">
+                                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#edit-staff-admin-{{ item.staff.id }}">Cancel</button>
+                                                                        <button type="submit" class="btn btn-gold btn-sm text-white">Save changes</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4 bg-dark bg-opacity-30 rounded-4">
+                                    <h6 class="text-white mb-0">No Staff Leads registered.</h6>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Sidebar Create Form -->
+                        <div class="col-lg-4">
+                            <div class="bg-black bg-opacity-35 p-4 rounded-4 border border-secondary-subtle">
+                                <h6 class="fw-bold text-white mb-3"><i class="bi bi-person-plus-fill text-warning me-2"></i> Add Staff Lead</h6>
+                                <form method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="create_staff">
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Username</label>
+                                        {{ staff_form.username }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Email</label>
+                                        {{ staff_form.email }}
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">First Name</label>
+                                            {{ staff_form.first_name }}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Last Name</label>
+                                            {{ staff_form.last_name }}
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Phone</label>
+                                            {{ staff_form.phone_number }}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">WhatsApp</label>
+                                            {{ staff_form.whatsapp_number }}
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Unique ID (Optional)</label>
+                                        {{ staff_form.employee_id }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Bio</label>
+                                        {{ staff_form.bio }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label text-white small">Password</label>
+                                        {{ staff_form.password }}
+                                    </div>
+                                    <button type="submit" class="btn btn-gold w-100 hover-lift text-white">Create Staff</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Manage Employees -->
+                <div class="tab-pane fade" id="employees-pane" role="tabpanel" aria-labelledby="employees-tab">
+                    <div class="row g-4">
+                        <!-- Employees List -->
+                        <div class="col-lg-8">
+                            <h5 class="fw-bold text-white mb-2">Employees Directory</h5>
+                            <p class="text-secondary small mb-4">View approved employees, track their active crew layouts, and update profiles.</p>
+                            
+                            {% if employees_data_list %}
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover align-middle border-0 small">
+                                        <thead>
+                                            <tr class="text-secondary">
+                                                <th>Employee User</th>
+                                                <th>Unique ID</th>
+                                                <th>Crew Allocation</th>
+                                                <th>Contact Info</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in employees_data_list %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold text-white">{{ item.employee.username }}</div>
+                                                        <div class="text-secondary mt-1 italic leading-tight" style="font-size: 0.75rem;">Bio: {{ item.employee.bio|default:"No biodata." }}</div>
+                                                    </td>
+                                                    <td class="fw-bold text-gradient-cyan">{{ item.employee.employee_id|default:"TBD" }}</td>
+                                                    <td>
+                                                        <span class="badge bg-info bg-opacity-20 text-info px-2 py-1 mb-1 d-inline-block">Active Deploys: {{ item.active_project_count }}</span>
+                                                        <div class="text-secondary-50 small" style="font-size: 0.7rem;">Crews: {{ item.current_project_summary|truncatechars:45 }}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div>{{ item.employee.email }}</div>
+                                                        <div class="text-secondary-50" style="font-size: 0.75rem;">Phone: {{ item.employee.phone_number }}</div>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-outline-gold action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#edit-emp-admin-{{ item.employee.id }}">
+                                                            <i class="bi bi-pencil-fill me-1"></i>Edit
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <!-- Collapsible Edit Row -->
+                                                <tr>
+                                                    <td colspan="5" class="p-0 border-0">
+                                                        <div class="collapse" id="edit-emp-admin-{{ item.employee.id }}">
+                                                            <div class="card collapse-card p-4 my-2 mx-3">
+                                                                <h6 class="fw-bold text-white mb-3">Update Details for Employee: {{ item.employee.username }}</h6>
+                                                                <form method="POST">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="action" value="edit_employee">
+                                                                    <input type="hidden" name="worker_id" value="{{ item.employee.id }}">
+                                                                    
+                                                                    <div class="row">
+                                                                        <div class="col-md-6 mb-3">
+                                                                            <label class="form-label text-white-50 small">Email</label>
+                                                                            {{ item.edit_form.email }}
+                                                                        </div>
+                                                                        <div class="col-md-3 mb-3">
+                                                                            <label class="form-label text-white-50 small">First Name</label>
+                                                                            {{ item.edit_form.first_name }}
+                                                                        </div>
+                                                                        <div class="col-md-3 mb-3">
+                                                                            <label class="form-label text-white-50 small">Last Name</label>
+                                                                            {{ item.edit_form.last_name }}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="row">
+                                                                        <div class="col-md-4 mb-3">
+                                                                            <label class="form-label text-white-50 small">Phone</label>
+                                                                            {{ item.edit_form.phone_number }}
+                                                                        </div>
+                                                                        <div class="col-md-4 mb-3">
+                                                                            <label class="form-label text-white-50 small">WhatsApp</label>
+                                                                            {{ item.edit_form.whatsapp_number }}
+                                                                        </div>
+                                                                        <div class="col-md-4 mb-3">
+                                                                            <label class="form-label text-white-50 small">Unique ID</label>
+                                                                            {{ item.edit_form.employee_id }}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label text-white-50 small">Bio / specialties</label>
+                                                                        {{ item.edit_form.bio }}
+                                                                    </div>
+                                                                    <div class="d-flex justify-content-end gap-2">
+                                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#edit-emp-admin-{{ item.employee.id }}">Cancel</button>
+                                                                        <button type="submit" class="btn btn-gold btn-sm text-white">Save changes</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4 bg-dark bg-opacity-30 rounded-4">
+                                    <h6 class="text-white mb-0">No Employees registered.</h6>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Sidebar Create Form -->
+                        <div class="col-lg-4">
+                            <div class="bg-black bg-opacity-35 p-4 rounded-4 border border-secondary-subtle">
+                                <h6 class="fw-bold text-white mb-3"><i class="bi bi-person-plus-fill text-info me-2"></i> Add Employee</h6>
+                                <form method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="create_employee">
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Username</label>
+                                        {{ employee_form.username }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Email</label>
+                                        {{ employee_form.email }}
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">First Name</label>
+                                            {{ employee_form.first_name }}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Last Name</label>
+                                            {{ employee_form.last_name }}
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Phone</label>
+                                            {{ employee_form.phone_number }}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">WhatsApp</label>
+                                            {{ employee_form.whatsapp_number }}
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Unique ID (Optional)</label>
+                                        {{ employee_form.employee_id }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Specialty / Bio</label>
+                                        {{ employee_form.bio }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label text-white small">Password</label>
+                                        {{ employee_form.password }}
+                                    </div>
+                                    <button type="submit" class="btn btn-gold w-100 hover-lift text-white" style="background-color: var(--accent-gold) !important;">Create Employee</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Attendance Tracker -->
+                <div class="tab-pane fade" id="attendance-pane" role="tabpanel" aria-labelledby="attendance-tab">
+                    <div class="row g-4">
+                        <!-- Left Side: Mark Attendance grid -->
+                        <div class="col-lg-8">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold text-white mb-0">Daily Check-In Roster</h5>
+                                <!-- Date Selector Form -->
+                                <form method="GET" class="d-flex gap-2">
+                                    <input type="hidden" name="tab" value="attendance">
+                                    <input type="date" name="date" class="form-control form-control-sm" value="{{ attendance_date_str }}" onchange="this.form.submit()">
+                                </form>
+                            </div>
+                            <p class="text-secondary small mb-4">Mark daily attendance logs for all active field engineers (Staff) and operators (Employees).</p>
+                            
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="mark_attendance">
+                                <input type="hidden" name="attendance_date" value="{{ attendance_date_str }}">
+                                
+                                <div class="table-responsive mb-3">
+                                    <table class="table table-dark table-hover align-middle border-0 small">
+                                        <thead>
+                                            <tr class="text-secondary">
+                                                <th>Worker Username</th>
+                                                <th>Unique ID</th>
+                                                <th>Daily Status</th>
+                                                <th>Attendance Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in attendance_data %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold text-white">{{ item.worker.username }}</div>
+                                                        <span class="badge bg-secondary-subtle text-secondary small" style="font-size: 0.65rem;">{{ item.worker.get_role_display }}</span>
+                                                    </td>
+                                                    <td class="text-gradient-cyan fw-bold">{{ item.worker.employee_id|default:"-" }}</td>
+                                                    <td>
+                                                        <div class="d-flex gap-2">
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input" type="radio" name="status_{{ item.worker.id }}" id="pres_{{ item.worker.id }}" value="PRESENT" {% if item.status == 'PRESENT' %}checked{% endif %}>
+                                                                <label class="form-check-label small text-success" for="pres_{{ item.worker.id }}">P</label>
+                                                            </div>
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input" type="radio" name="status_{{ item.worker.id }}" id="abs_{{ item.worker.id }}" value="ABSENT" {% if item.status == 'ABSENT' %}checked{% endif %}>
+                                                                <label class="form-check-label small text-danger" for="abs_{{ item.worker.id }}">A</label>
+                                                            </div>
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input" type="radio" name="status_{{ item.worker.id }}" id="leave_{{ item.worker.id }}" value="LEAVE" {% if item.status == 'LEAVE' %}checked{% endif %}>
+                                                                <label class="form-check-label small text-info" for="leave_{{ item.worker.id }}">L</label>
+                                                            </div>
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input" type="radio" name="status_{{ item.worker.id }}" id="half_{{ item.worker.id }}" value="HALF_DAY" {% if item.status == 'HALF_DAY' %}checked{% endif %}>
+                                                                <label class="form-check-label small text-warning" for="half_{{ item.worker.id }}">H</label>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" name="notes_{{ item.worker.id }}" class="form-control form-control-sm" placeholder="e.g. Present, Leave details" value="{{ item.notes }}">
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button type="submit" class="btn btn-gold text-white btn-sm px-4 rounded-3"><i class="bi bi-save me-1"></i> Save Daily Logs</button>
+                            </form>
+                        </div>
+
+                        <!-- Right Side: Overall worker metrics -->
+                        <div class="col-lg-4">
+                            <div class="bg-black bg-opacity-35 p-4 rounded-4 border border-secondary-subtle">
+                                <h6 class="fw-bold text-white mb-3"><i class="bi bi-bar-chart-fill text-gold me-2"></i> Attendance Ratings</h6>
+                                <p class="text-secondary small mb-4">Overall attendance metrics aggregated per worker since registration.</p>
+                                
+                                <div class="d-flex flex-column gap-3">
+                                    {% for stat in attendance_stats %}
+                                        <div class="bg-dark p-3 rounded-3 border border-secondary-subtle" style="border-color: rgba(255,255,255,0.05) !important;">
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <div>
+                                                    <strong class="text-white small d-block">{{ stat.worker.username }}</strong>
+                                                    <span class="text-secondary-50 small" style="font-size: 0.65rem;">ID: {{ stat.worker.employee_id|default:"-" }}</span>
+                                                </div>
+                                                <strong class="{% if stat.rating_pct >= 90 %}text-success{% elif stat.rating_pct >= 75 %}text-warning{% else %}text-danger{% endif %} small">{{ stat.rating_pct|floatformat:1 }}%</strong>
+                                            </div>
+                                            <div class="progress bg-black bg-opacity-40" style="height: 6px;">
+                                                <div class="progress-bar {% if stat.rating_pct >= 90 %}bg-success{% elif stat.rating_pct >= 75 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ stat.rating_pct }}%"></div>
+                                            </div>
+                                            <small class="text-secondary d-block mt-2" style="font-size: 0.7rem;">Days Present: {{ stat.present_days }} / {{ stat.total_days }} total</small>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 5: Deploy Project -->
+                <div class="tab-pane fade" id="projects-pane" role="tabpanel" aria-labelledby="projects-tab">
+                    <div class="row g-4">
+                        <!-- Project Allocations List -->
+                        <div class="col-lg-8">
+                            <h5 class="fw-bold text-white mb-3">Project Allocations</h5>
+                            
+                            {% if all_projects %}
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover align-middle border-0 small">
+                                        <thead>
+                                            <tr class="text-secondary">
+                                                <th>Project Details</th>
+                                                <th>Financials (INR)</th>
+                                                <th>Staff Lead</th>
+                                                <th>Milestone Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in all_projects %}
+                                                <tr>
+                                                    <td>
+                                                        <strong class="text-white">{{ item.project.title }}</strong>
+                                                        <div class="text-secondary" style="font-size: 0.75rem;">Client: {{ item.project.customer.get_full_name|default:item.project.customer.username }}</div>
+                                                        <div class="text-secondary-50" style="font-size: 0.7rem;"><i class="bi bi-calendar3 me-1"></i> {{ item.project.start_date|default:"N/A" }} to {{ item.project.end_date|default:"N/A" }}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="text-white">Val: ₹{{ item.project.total_value|floatformat:2 }}</div>
+                                                        <div class="text-success small">Paid: ₹{{ item.project.advances_paid|floatformat:2 }}</div>
+                                                        <div class="text-warning small">Bal: ₹{{ item.project.remaining_balance|floatformat:2 }}</div>
+                                                    </td>
+                                                    <td>
+                                                        {% if item.project.staff_incharge %}
+                                                            <div class="d-flex align-items-center">
+                                                                <span class="badge bg-secondary me-2">{{ item.project.staff_incharge.profile_picture_initials }}</span>
+                                                                <span class="text-white">{{ item.project.staff_incharge.get_full_name }}</span>
+                                                            </div>
+                                                        {% else %}
+                                                            <span class="text-secondary italic">None Assigned</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-warning text-dark">{{ item.project.get_status_display }}</span>
+                                                        <div class="text-secondary-50 mt-1 mb-2" style="font-size: 0.7rem;">Crews: {{ item.project.laborers_count }} laborers</div>
+                                                        <div class="d-flex flex-column gap-2">
+                                                            <button class="btn btn-outline-gold action-btn-pill w-100" type="button" data-bs-toggle="collapse" data-bs-target="#editProjectCollapse{{ item.project.id }}">
+                                                                <i class="bi bi-pencil-square"></i> Edit Tracker
+                                                            </button>
+                                                            {% if item.project.status != 'COMPLETED' %}
+                                                                <form method="POST" class="w-100">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="action" value="close_project">
+                                                                    <input type="hidden" name="project_id" value="{{ item.project.id }}">
+                                                                    <button class="btn btn-success action-btn-pill text-white border-0 w-100" type="submit" onclick="return confirm('Are you sure you want to close and complete this project?');">
+                                                                        <i class="bi bi-check-circle-fill"></i> Close Project
+                                                                    </button>
+                                                                </form>
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <!-- Collapsible Project Edit Row -->
+                                                <tr>
+                                                    <td colspan="4" class="p-0 border-0">
+                                                        <div class="collapse" id="editProjectCollapse{{ item.project.id }}">
+                                                            <div class="card collapse-card p-4 my-2 mx-3">
+                                                                <form method="POST">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="action" value="edit_project">
+                                                                    <input type="hidden" name="project_id" value="{{ item.project.id }}">
+                                                                     
+                                                                    <h6 class="fw-bold text-gradient-gold mb-3 small"><i class="bi bi-pencil me-1"></i> Edit Project Details</h6>
+                                                                     
+                                                                    <div class="row">
+                                                                        <div class="col-md-6 mb-2">
+                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">Customer/Client</label>
+                                                                            {{ item.edit_form.customer }}
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-2">
+                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">Project Incharge (Staff)</label>
+                                                                            {{ item.edit_form.staff_incharge }}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="mb-2">
+                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Project Title</label>
+                                                                        {{ item.edit_form.title }}
+                                                                    </div>
+                                                                    <div class="mb-2">
+                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Milestone Status</label>
+                                                                        {{ item.edit_form.status }}
+                                                                    </div>
+                                                                    <div class="row">
+                                                                        <div class="col-6 mb-2">
+                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">Contract Value (₹)</label>
+                                                                            {{ item.edit_form.total_value }}
+                                                                        </div>
+                                                                        <div class="col-6 mb-2">
+                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">Advances Paid (₹)</label>
+                                                                            {{ item.edit_form.advances_paid }}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="row">
+                                                                        <div class="col-6 mb-2">
+                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">Start Date</label>
+                                                                            {{ item.edit_form.start_date }}
+                                                                        </div>
+                                                                        <div class="col-6 mb-2">
+                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">End Date</label>
+                                                                            {{ item.edit_form.end_date }}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="mb-2">
+                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Laborers Count</label>
+                                                                        {{ item.edit_form.laborers_count }}
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Crew Specifications</label>
+                                                                        {{ item.edit_form.crew_details }}
+                                                                    </div>
+                                                                    <div class="d-flex justify-content-end gap-2">
+                                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#editProjectCollapse{{ item.project.id }}">Cancel</button>
+                                                                        <button type="submit" class="btn btn-gold btn-sm text-white">Save Project</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5 bg-dark bg-opacity-30 rounded-4">
+                                    <h6 class="text-white mb-0">No active Solar projects assigned.</h6>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Configure New Solar Project Form -->
+                        <div class="col-lg-4">
+                            <div class="bg-black bg-opacity-35 p-4 rounded-4 border border-secondary-subtle">
+                                <h6 class="fw-bold text-white mb-3"><i class="bi bi-plus-circle text-warning me-2"></i> Configure Project</h6>
+                                <form method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="create_project">
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Customer/Client</label>
+                                        {{ project_form.customer }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Project Incharge (Staff)</label>
+                                        {{ project_form.staff_incharge }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Project Title</label>
+                                        {{ project_form.title }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Status Milestone</label>
+                                        {{ project_form.status }}
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Total Value (₹)</label>
+                                            {{ project_form.total_value }}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Advances Paid (₹)</label>
+                                            {{ project_form.advances_paid }}
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Start Date</label>
+                                            {{ project_form.start_date }}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">End Date</label>
+                                            {{ project_form.end_date }}
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Helpers Count</label>
+                                        {{ project_form.laborers_count }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label text-white small">Crew specifications</label>
+                                        {{ project_form.crew_details }}
+                                    </div>
+                                    <button type="submit" class="btn btn-gold w-100 hover-lift text-white">Deploy Project</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 6: Clients & Customers -->
+                <div class="tab-pane fade" id="customers-pane" role="tabpanel" aria-labelledby="customers-tab">
+                    <div class="row g-4">
+                        <!-- Customers List -->
+                        <div class="col-lg-8">
+                            <h5 class="fw-bold text-white mb-3">Customers & Clients List</h5>
+                            <p class="text-secondary small mb-4">View client details, toggle approval status, and share credentials directly.</p>
+                            
+                            {% if all_customers %}
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover align-middle border-0 small">
+                                        <thead>
+                                            <tr class="text-secondary">
+                                                <th>Client Info & Login</th>
+                                                <th>Email & Phone</th>
+                                                <th>Status</th>
+                                                <th class="text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in all_customers %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold text-white">{{ item.customer.get_full_name|default:item.customer.username }}</div>
+                                                        <span class="badge bg-secondary-subtle text-secondary small mt-1">Username: <strong>{{ item.customer.username }}</strong></span>
+                                                    </td>
+                                                    <td>
+                                                        <div>{{ item.customer.email }}</div>
+                                                        <div class="text-secondary-50" style="font-size: 0.75rem;">Phone: {{ item.customer.phone_number|default:"-" }}</div>
+                                                    </td>
+                                                    <td>
+                                                        {% if item.customer.is_approved and item.customer.is_active %}
+                                                            <span class="badge bg-success-subtle text-success px-2 py-1"><i class="bi bi-shield-check"></i> Activated</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger-subtle text-danger px-2 py-1"><i class="bi bi-shield-slash"></i> Suspended</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <button class="btn btn-outline-gold action-btn-pill me-1" type="button" data-bs-toggle="collapse" data-bs-target="#editCustomerCollapse{{ item.customer.id }}"><i class="bi bi-pencil-fill me-1"></i>Edit</button>
+                                                        {% if item.customer.is_approved and item.customer.is_active %}
+                                                            <a href="{% url 'admin_revoke_customer' item.customer.id %}" class="btn btn-outline-danger action-btn-pill"><i class="bi bi-shield-x me-1"></i>Deactivate</a>
+                                                        {% else %}
+                                                            <a href="{% url 'admin_approve_customer' item.customer.id %}" class="btn btn-success action-btn-pill text-white border-0"><i class="bi bi-shield-check me-1"></i>Approve</a>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <!-- Collapsible Edit Row -->
+                                                <tr>
+                                                    <td colspan="4" class="p-0 border-0">
+                                                        <div class="collapse" id="editCustomerCollapse{{ item.customer.id }}">
+                                                            <div class="card collapse-card p-4 my-2 mx-3">
+                                                                <h6 class="fw-bold text-white mb-3">Update Client: {{ item.customer.username }}</h6>
+                                                                <form method="POST">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="action" value="edit_customer">
+                                                                    <input type="hidden" name="customer_id" value="{{ item.customer.id }}">
+                                                                    
+                                                                    <div class="row">
+                                                                        <div class="col-md-6 mb-3">
+                                                                            <label class="form-label text-white-50 small">Email</label>
+                                                                            {{ item.edit_form.email }}
+                                                                        </div>
+                                                                        <div class="col-md-3 mb-3">
+                                                                            <label class="form-label text-white-50 small">First Name</label>
+                                                                            {{ item.edit_form.first_name }}
+                                                                        </div>
+                                                                        <div class="col-md-3 mb-3">
+                                                                            <label class="form-label text-white-50 small">Last Name</label>
+                                                                            {{ item.edit_form.last_name }}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="row">
+                                                                        <div class="col-md-6 mb-3">
+                                                                            <label class="form-label text-white-50 small">Phone</label>
+                                                                            {{ item.edit_form.phone_number }}
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-3">
+                                                                            <label class="form-label text-white-50 small">WhatsApp</label>
+                                                                            {{ item.edit_form.whatsapp_number }}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="d-flex justify-content-end gap-2">
+                                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#editCustomerCollapse{{ item.customer.id }}">Cancel</button>
+                                                                        <button type="submit" class="btn btn-gold btn-sm text-white">Save changes</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4 bg-dark bg-opacity-30 rounded-4">
+                                    <h6 class="text-white mb-0">No clients registered yet.</h6>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Sidebar Create Form -->
+                        <div class="col-lg-4">
+                            <div class="bg-black bg-opacity-35 p-4 rounded-4 border border-secondary-subtle">
+                                <h6 class="fw-bold text-white mb-3"><i class="bi bi-person-plus-fill text-warning me-2"></i> Register Client</h6>
+                                <form method="POST">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="create_customer">
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Username</label>
+                                        {{ customer_form.username }}
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label text-white small">Email</label>
+                                        {{ customer_form.email }}
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">First Name</label>
+                                            {{ customer_form.first_name }}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Last Name</label>
+                                            {{ customer_form.last_name }}
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Phone</label>
+                                            {{ customer_form.phone_number }}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">WhatsApp</label>
+                                            {{ customer_form.whatsapp_number }}
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label text-white small">Password</label>
+                                        {{ customer_form.password }}
+                                    </div>
+                                    <button type="submit" class="btn btn-gold w-100 hover-lift text-white">Create Customer</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 7: Complaints Inbox -->
+                <div class="tab-pane fade" id="complaints-pane" role="tabpanel" aria-labelledby="complaints-tab">
+                    <div class="row">
+                        <div class="col-12">
+                            <h4 class="fw-bold text-white mb-3"><i class="bi bi-chat-square-text-fill text-warning me-2"></i> Client Complaints Inbox</h4>
+                            <p class="text-secondary small mb-4">View real-time safety, technical, or administrative complaints raised by Jothi Solar Solutions customers.</p>
+                            
+                            <!-- Pending Complaints -->
+                            <div class="card glass-card border-0 p-4 mb-4" style="border-left: 4px solid var(--accent-danger) !important;">
+                                <h5 class="fw-bold text-white mb-3 small"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> Pending Resolution ({{ pending_complaints.count }})</h5>
+                                {% if pending_complaints %}
+                                    <div class="table-responsive">
+                                        <table class="table table-dark table-hover align-middle border-0 small">
+                                            <thead>
+                                                <tr class="text-secondary">
+                                                    <th>Customer</th>
+                                                    <th>Date Raised</th>
+                                                    <th>Subject</th>
+                                                    <th>Description</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for comp in pending_complaints %}
+                                                    <tr>
+                                                        <td>
+                                                            <div class="fw-bold text-white">{{ comp.customer.get_full_name }}</div>
+                                                            <div class="text-secondary-50 small">@{{ comp.customer.username }}</div>
+                                                            <div class="text-secondary-50 small">Ph: {{ comp.customer.phone_number|default:"N/A" }}</div>
+                                                        </td>
+                                                        <td class="text-secondary-50">{{ comp.created_at|date:"M d, Y H:i" }}</td>
+                                                        <td class="fw-bold text-gradient-gold">{{ comp.subject }}</td>
+                                                        <td class="text-white-50" style="max-width: 300px; white-space: pre-line;">{{ comp.description }}</td>
+                                                        <td>
+                                                            <form method="POST" style="display:inline;">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="action" value="resolve_complaint">
+                                                                <input type="hidden" name="complaint_id" value="{{ comp.id }}">
+                                                                <button type="submit" class="btn btn-success btn-sm action-btn-pill border-0 text-white" onclick="return confirm('Are you sure you want to mark this complaint as resolved?');">
+                                                                    <i class="bi bi-check-circle-fill me-1"></i> Resolve
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="text-center py-4 bg-dark rounded-4">
+                                        <i class="bi bi-emoji-smile text-success fs-3 mb-2"></i>
+                                        <p class="text-secondary small mb-0">No pending complaints. All client accounts are running smoothly!</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Resolved Complaints History -->
+                            <div class="card glass-card border-0 p-4">
+                                <h5 class="fw-bold text-white mb-3 small"><i class="bi bi-check-circle-fill text-success me-2"></i> Resolution History ({{ resolved_complaints.count }})</h5>
+                                {% if resolved_complaints %}
+                                    <div class="table-responsive">
+                                        <table class="table table-dark table-hover align-middle border-0 small">
+                                            <thead>
+                                                <tr class="text-secondary">
+                                                    <th>Customer</th>
+                                                    <th>Subject</th>
+                                                    <th>Date Raised</th>
+                                                    <th>Date Resolved</th>
+                                                    <th>Description</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for comp in resolved_complaints %}
+                                                    <tr>
+                                                        <td>
+                                                            <div class="fw-bold text-white">{{ comp.customer.get_full_name }}</div>
+                                                            <div class="text-secondary-50 small">@{{ comp.customer.username }}</div>
+                                                        </td>
+                                                        <td class="fw-bold text-success">{{ comp.subject }}</td>
+                                                        <td class="text-secondary-50">{{ comp.created_at|date:"M d, Y" }}</td>
+                                                        <td class="text-success small">{{ comp.resolved_at|date:"M d, Y H:i" }}</td>
+                                                        <td class="text-secondary" style="max-width: 300px; white-space: pre-line;">{{ comp.description }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-secondary small mb-0 text-center py-4 bg-dark rounded-4">No historical resolved tickets.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Simple code to preserve active tab upon reload
+    document.addEventListener("DOMContentLoaded", function() {
+        const activeTab = localStorage.getItem("admin_active_tab");
+        if (activeTab) {
+            const triggerEl = document.querySelector(`#adminTabs button[data-bs-target="${activeTab}"]`);
+            if (triggerEl) {
+                const tab = new bootstrap.Tab(triggerEl);
+                tab.show();
+            }
+        }
+
+        const tabButtons = document.querySelectorAll("#adminTabs button");
+        tabButtons.forEach(btn => {
+            btn.addEventListener("shown.bs.tab", function(e) {
+                const target = e.target.getAttribute("data-bs-target");
+                localStorage.setItem("admin_active_tab", target);
+            });
+        });
+    });
+</script>
+{% endblock %}
