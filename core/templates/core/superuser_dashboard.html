@@ -61,7 +61,7 @@
 <!-- Global Portfolio Financial Metrics (Always Visible) -->
 <div class="row g-4 mb-4">
     <!-- Total Revenue Portfolio -->
-    <div class="col-md-4">
+    <div class="col-lg-3 col-md-6">
         <div class="card glass-card p-4 border-0 h-100">
             <div class="d-flex align-items-center mb-3">
                 <div class="metric-badge bg-info-subtle text-info">
@@ -72,12 +72,12 @@
                     <h3 class="fw-extrabold text-white mb-0">₹{{ total_revenue|floatformat:2 }}</h3>
                 </div>
             </div>
-            <div class="text-secondary small">Combined value of all solar project allocations.</div>
+            <div class="text-secondary small">Combined value of all active solar project allocations.</div>
         </div>
     </div>
 
     <!-- Total Received Advances -->
-    <div class="col-md-4">
+    <div class="col-lg-3 col-md-6">
         <div class="card glass-card p-4 border-0 h-100" style="border-bottom: 3px solid var(--accent-gold) !important;">
             <div class="d-flex align-items-center mb-3">
                 <div class="metric-badge bg-success-subtle text-success">
@@ -88,12 +88,12 @@
                     <h3 class="fw-extrabold text-white mb-0">₹{{ total_received|floatformat:2 }}</h3>
                 </div>
             </div>
-            <div class="text-secondary small">Total upfront advance payments received.</div>
+            <div class="text-secondary small">Total upfront advance payments received for active trackers.</div>
         </div>
     </div>
 
     <!-- Remaining Balance Portfolio -->
-    <div class="col-md-4">
+    <div class="col-lg-3 col-md-6">
         <div class="card glass-card p-4 border-0 h-100" style="border-bottom: 3px solid var(--accent-danger) !important;">
             <div class="d-flex align-items-center mb-3">
                 <div class="metric-badge bg-danger-subtle text-danger">
@@ -104,7 +104,23 @@
                     <h3 class="fw-extrabold text-white mb-0">₹{{ remaining_balance|floatformat:2 }}</h3>
                 </div>
             </div>
-            <div class="text-secondary small">Total outstanding balance left to collect from clients.</div>
+            <div class="text-secondary small">Total outstanding balance left to collect from active clients.</div>
+        </div>
+    </div>
+
+    <!-- Closed Project Value -->
+    <div class="col-lg-3 col-md-6">
+        <div class="card glass-card p-4 border-0 h-100" style="border-bottom: 3px solid var(--accent-cyan) !important;">
+            <div class="d-flex align-items-center mb-3">
+                <div class="metric-badge bg-info-subtle text-info" style="color: var(--accent-cyan) !important; background-color: rgba(20, 184, 166, 0.1) !important;">
+                    <i class="bi bi-building-check"></i>
+                </div>
+                <div>
+                    <h6 class="text-secondary small fw-semibold mb-0">Closed Project Value</h6>
+                    <h3 class="fw-extrabold text-white mb-0">₹{{ completed_project_value|floatformat:2 }}</h3>
+                </div>
+            </div>
+            <div class="text-secondary small">Combined value of all completed and closed solar installations.</div>
         </div>
     </div>
 </div>
@@ -960,11 +976,17 @@
             <div class="col-lg-8">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold text-white mb-0">Daily Attendance Marking Log</h5>
-                    <!-- Date Selector Form -->
-                    <form method="GET" class="d-flex gap-2">
-                        <input type="hidden" name="date" class="form-control form-control-sm" value="{{ attendance_date_str }}" onchange="this.form.submit()">
-                        <input type="date" name="date" class="form-control form-control-sm" value="{{ attendance_date_str }}" onchange="this.form.submit()">
-                    </form>
+                    <div class="d-flex gap-2">
+                        <!-- Export CSV Button -->
+                        <a href="{% url 'export_attendance_csv' %}" class="btn btn-outline-gold btn-sm rounded-3 px-3 d-flex align-items-center gap-1">
+                            <i class="bi bi-file-earmark-spreadsheet-fill"></i> Export CSV Report
+                        </a>
+                        <!-- Date Selector Form -->
+                        <form method="GET" class="d-flex gap-2 mb-0">
+                            <input type="hidden" name="date" class="form-control form-control-sm" value="{{ attendance_date_str }}" onchange="this.form.submit()">
+                            <input type="date" name="date" class="form-control form-control-sm" value="{{ attendance_date_str }}" onchange="this.form.submit()">
+                        </form>
+                    </div>
                 </div>
                 <p class="text-secondary small mb-4">Select a calendar date and check in daily statuses for all active staff leads and employees.</p>
                 
@@ -1026,7 +1048,12 @@
             <!-- Right Panel: Attendance Statistics -->
             <div class="col-lg-4">
                 <div class="bg-black bg-opacity-35 p-4 rounded-4 border border-secondary-subtle">
-                    <h6 class="fw-bold text-white mb-3"><i class="bi bi-bar-chart-fill text-gold me-2"></i> Attendance Ratings</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-white mb-0"><i class="bi bi-bar-chart-fill text-gold me-2"></i> Attendance Ratings</h6>
+                        <a href="{% url 'export_salaries_csv' %}" class="btn btn-outline-gold btn-xs px-2 py-1 rounded-pill small" style="font-size: 0.65rem; border-width: 1px;">
+                            <i class="bi bi-cash-stack"></i> Export Salary CSV
+                        </a>
+                    </div>
                     <p class="text-secondary small mb-4">Aggregated worker attendance metrics since creation.</p>
                     
                     <div class="d-flex flex-column gap-3">
@@ -1311,8 +1338,13 @@
                 <div class="card glass-card p-4 border-0">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h5 class="fw-bold text-white mb-0">Solar Installation Progress Trackers</h5>
-                        <!-- Archiving Pills Navigation -->
-                        <ul class="nav nav-pills g-1 bg-black bg-opacity-30 p-1 rounded-3 small" id="projectArchivingTabs" role="tablist">
+                        <div class="d-flex gap-2">
+                            <!-- Export CSV Button -->
+                            <a href="{% url 'export_projects_csv' %}" class="btn btn-outline-gold btn-sm rounded-3 px-3 d-flex align-items-center gap-1" style="padding: 4px 12px !important; font-size: 0.75rem; height: 32px; font-weight: 600;">
+                                <i class="bi bi-file-earmark-spreadsheet-fill"></i> Export Projects CSV
+                            </a>
+                            <!-- Archiving Pills Navigation -->
+                            <ul class="nav nav-pills g-1 bg-black bg-opacity-30 p-1 rounded-3 small" id="projectArchivingTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active py-1 px-3" id="active-projects-tab" data-bs-toggle="pill" data-bs-target="#active-projects-pane" type="button" role="tab" aria-controls="active-projects-pane" aria-selected="true">
                                     Active Trackers
@@ -1325,6 +1357,7 @@
                             </li>
                         </ul>
                     </div>
+                </div>
 
                     {% if project_data_list %}
                         <div class="tab-content" id="projectArchivingTabsContent">

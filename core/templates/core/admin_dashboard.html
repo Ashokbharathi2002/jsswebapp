@@ -409,7 +409,8 @@
                             </div>
                         </div>
                     </div>
-                                <!-- Tab 3: Manage Employees -->
+                </div>
+                <!-- Tab 3: Manage Employees -->
                 <div class="tab-pane fade" id="employees-pane" role="tabpanel" aria-labelledby="employees-tab">
                     <div class="row g-4">
                         <!-- Employees List -->
@@ -600,15 +601,20 @@
                 <!-- Tab 4: Attendance Tracker -->
                 <div class="tab-pane fade" id="attendance-pane" role="tabpanel" aria-labelledby="attendance-tab">
                     <div class="row g-4">
-                        <!-- Left Side: Mark Attendance grid -->
                         <div class="col-lg-8">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="fw-bold text-white mb-0">Daily Check-In Roster</h5>
-                                <!-- Date Selector Form -->
-                                <form method="GET" class="d-flex gap-2">
-                                    <input type="hidden" name="tab" value="attendance">
-                                    <input type="date" name="date" class="form-control form-control-sm" value="{{ attendance_date_str }}" onchange="this.form.submit()">
-                                </form>
+                                <div class="d-flex gap-2">
+                                    <!-- Export CSV Button -->
+                                    <a href="{% url 'export_attendance_csv' %}" class="btn btn-outline-gold btn-sm rounded-3 px-3 d-flex align-items-center gap-1">
+                                        <i class="bi bi-file-earmark-spreadsheet-fill"></i> Export CSV Report
+                                    </a>
+                                    <!-- Date Selector Form -->
+                                    <form method="GET" class="d-flex gap-2 mb-0">
+                                        <input type="hidden" name="tab" value="attendance">
+                                        <input type="date" name="date" class="form-control form-control-sm" value="{{ attendance_date_str }}" onchange="this.form.submit()">
+                                    </form>
+                                </div>
                             </div>
                             <p class="text-secondary small mb-4">Mark daily attendance logs for all active field engineers (Staff) and operators (Employees).</p>
                             
@@ -670,7 +676,12 @@
                         <!-- Right Side: Overall worker metrics -->
                         <div class="col-lg-4">
                             <div class="bg-black bg-opacity-35 p-4 rounded-4 border border-secondary-subtle">
-                                <h6 class="fw-bold text-white mb-3"><i class="bi bi-bar-chart-fill text-gold me-2"></i> Attendance Ratings</h6>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="fw-bold text-white mb-0"><i class="bi bi-bar-chart-fill text-gold me-2"></i> Attendance Ratings</h6>
+                                    <a href="{% url 'export_salaries_csv' %}" class="btn btn-outline-gold btn-xs px-2 py-1 rounded-pill small" style="font-size: 0.65rem; border-width: 1px;">
+                                        <i class="bi bi-cash-stack"></i> Export Salary CSV
+                                    </a>
+                                </div>
                                 <p class="text-secondary small mb-4">Overall attendance metrics aggregated per worker since registration.</p>
                                 
                                 <div class="d-flex flex-column gap-3">
@@ -702,8 +713,13 @@
                         <div class="col-lg-8">
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <h5 class="fw-bold text-white mb-0">Project Allocations</h5>
-                                <!-- Archiving Pills Navigation -->
-                                <ul class="nav nav-pills g-1 bg-black bg-opacity-30 p-1 rounded-3 small" id="projectArchivingTabs" role="tablist">
+                                <div class="d-flex gap-2">
+                                    <!-- Export CSV Button -->
+                                    <a href="{% url 'export_projects_csv' %}" class="btn btn-outline-gold btn-sm rounded-3 px-3 d-flex align-items-center gap-1" style="padding: 4px 12px !important; font-size: 0.75rem; height: 32px; font-weight: 600;">
+                                        <i class="bi bi-file-earmark-spreadsheet-fill"></i> Export Projects CSV
+                                    </a>
+                                    <!-- Archiving Pills Navigation -->
+                                    <ul class="nav nav-pills g-1 bg-black bg-opacity-30 p-1 rounded-3 small" id="projectArchivingTabs" role="tablist">
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link active py-1 px-3" id="active-projects-tab" data-bs-toggle="pill" data-bs-target="#active-projects-pane" type="button" role="tab" aria-controls="active-projects-pane" aria-selected="true">
                                             Active Trackers
@@ -716,6 +732,7 @@
                                     </li>
                                 </ul>
                             </div>
+                        </div>
                             
                             {% if all_projects %}
                                 <div class="tab-content" id="projectArchivingTabsContent">

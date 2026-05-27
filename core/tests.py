@@ -417,3 +417,24 @@ class SuperUserDashboardTests(TestCase):
         complaint.refresh_from_db()
         self.assertEqual(complaint.status, 'RESOLVED')
         self.assertIsNotNone(complaint.resolved_at)
+
+    def test_completed_project_value_metric(self):
+        """Verify that completed projects sum up to the Closed Project Value metric."""
+        SolarInstallationProject.objects.create(
+            customer=self.test_customer,
+            staff_incharge=self.test_staff,
+            title="Completed Solar Setup",
+            status="COMPLETED",
+            total_value=150000.00,
+            advances_paid=150000.00,
+            start_date="2026-05-01",
+            end_date="2026-05-20",
+            laborers_count=2,
+            crew_details="testemployee"
+        )
+        
+        self.client.login(username="superuser", password="solar123")
+        response = self.client.get(reverse('superuser_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Closed Project Value")
+        self.assertContains(response, "150000.00")

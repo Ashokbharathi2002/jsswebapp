@@ -23,4 +23,7 @@ urlpatterns = [
     # Admin actions
     path('admin/approve/<int:user_id>/', views.admin_approve_customer, name='admin_approve_customer'),
     path('admin/revoke/<int:user_id>/', views.admin_revoke_customer, name='admin_revoke_customer'),
+    path('admin/attendance/export/', views.export_attendance_csv, name='export_attendance_csv'),
+    path('admin/projects/export/', views.export_projects_csv, name='export_projects_csv'),
+    path('admin/salaries/export/', views.export_salaries_csv, name='export_salaries_csv'),
 ]

@@ -917,9 +917,10 @@ def superuser_dashboard(request):
             return redirect(f"{reverse('superuser_dashboard')}?date={date_str}")
 
     # Global company financial and installation metrics
-    total_revenue = SolarInstallationProject.objects.aggregate(Sum('total_value'))['total_value__sum'] or Decimal('0.00')
-    total_received = SolarInstallationProject.objects.aggregate(Sum('advances_paid'))['advances_paid__sum'] or Decimal('0.00')
+    total_revenue = SolarInstallationProject.objects.exclude(status='COMPLETED').aggregate(Sum('total_value'))['total_value__sum'] or Decimal('0.00')
+    total_received = SolarInstallationProject.objects.exclude(status='COMPLETED').aggregate(Sum('advances_paid'))['advances_paid__sum'] or Decimal('0.00')
     remaining_balance = total_revenue - total_received
+    completed_project_value = SolarInstallationProject.objects.filter(status='COMPLETED').aggregate(Sum('total_value'))['total_value__sum'] or Decimal('0.00')
 
     total_projects = SolarInstallationProject.objects.count()
     completed_projects = SolarInstallationProject.objects.filter(status='COMPLETED').count()
@@ -961,6 +962,7 @@ def superuser_dashboard(request):
         'total_revenue': total_revenue,
         'total_received': total_received,
         'remaining_balance': remaining_balance,
+        'completed_project_value': completed_project_value,
         'total_projects': total_projects,
         'completed_projects': completed_projects,
         'active_projects': active_projects,
@@ -1033,3 +1035,111 @@ def admin_revoke_customer(request, user_id):
     if request.user.role == 'SUPERUSER' or request.user.is_superuser:
         return redirect('superuser_dashboard')
     return redirect('admin_dashboard')
+
+
+@login_required
+def export_attendance_csv(request):
+    if request.user.role not in ['ADMIN', 'SUPERUSER'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Admins Only")
+    
+    import csv
+    from django.http import HttpResponse
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="attendance_report_{datetime.now().strftime("%Y-%m-%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'Username', 'Full Name', 'Role', 'Employee ID', 'Status', 'Notes'])
+    
+    records = Attendance.objects.all().order_by('-date', 'user__role', 'user__username')
+    for record in records:
+        writer.writerow([
+            record.date.strftime('%Y-%m-%d'),
+            record.user.username,
+            record.user.get_full_name() or record.user.username,
+            record.user.get_role_display(),
+            record.user.employee_id or 'N/A',
+            record.get_status_display(),
+            record.notes or ''
+        ])
+        
+    return response
+
+
+@login_required
+def export_projects_csv(request):
+    if request.user.role not in ['ADMIN', 'SUPERUSER'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Admins Only")
+    
+    import csv
+    from django.http import HttpResponse
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="projects_report_{datetime.now().strftime("%Y-%m-%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Project Title', 'Customer Username', 'Customer Name', 'Staff In-charge', 'Status', 'Advances Paid (INR)', 'Total Value (INR)', 'Remaining Balance (INR)', 'Start Date', 'End Date', 'Laborers Count', 'Crew Details'])
+    
+    projects = SolarInstallationProject.objects.all().order_by('-start_date')
+    for project in projects:
+        writer.writerow([
+            project.title,
+            project.customer.username,
+            project.customer.get_full_name() or project.customer.username,
+            project.staff_incharge.get_full_name() if project.staff_incharge else 'Unassigned',
+            project.get_status_display(),
+            project.advances_paid,
+            project.total_value,
+            project.remaining_balance,
+            project.start_date.strftime('%Y-%m-%d') if project.start_date else 'TBD',
+            project.end_date.strftime('%Y-%m-%d') if project.end_date else 'TBD',
+            project.laborers_count,
+            project.crew_details or ''
+        ])
+        
+    return response
+
+
+@login_required
+def export_salaries_csv(request):
+    if request.user.role not in ['ADMIN', 'SUPERUSER'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Admins Only")
+    
+    import csv
+    from django.http import HttpResponse
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="salary_payroll_report_{datetime.now().strftime("%Y-%m-%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Username', 'Full Name', 'Role', 'Unique Employee ID', 'Base Monthly Salary (INR)', f'Current Month ({timezone.now().strftime("%B")}) Attendance Rating (%)', 'Current Month Calculated Payout (INR)', 'Overall Attendance Rating (%)', 'Overall Calculated Payout (INR)'])
+    
+    workers = CustomUser.objects.filter(role__in=['STAFF', 'EMPLOYEE']).order_by('role', 'username')
+    now = timezone.now()
+    
+    for worker in workers:
+        # Overall rating
+        total_days = Attendance.objects.filter(user=worker).count()
+        present_days = Attendance.objects.filter(user=worker, status='PRESENT').count()
+        rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
+        calculated_salary_overall = Decimal(float(worker.salary or 0.00) * (rating_pct / 100.0))
+        
+        # Monthly rating
+        total_days_monthly = Attendance.objects.filter(user=worker, date__year=now.year, date__month=now.month).count()
+        present_days_monthly = Attendance.objects.filter(user=worker, status='PRESENT', date__year=now.year, date__month=now.month).count()
+        rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
+        calculated_salary_monthly = Decimal(float(worker.salary or 0.00) * (rating_pct_monthly / 100.0))
+        
+        writer.writerow([
+            worker.username,
+            worker.get_full_name() or worker.username,
+            worker.get_role_display(),
+            worker.employee_id or 'N/A',
+            worker.salary,
+            f"{rating_pct_monthly:.1f}%",
+            f"{calculated_salary_monthly:.2f}",
+            f"{rating_pct:.1f}%",
+            f"{calculated_salary_overall:.2f}"
+        ])
+        
+    return response
