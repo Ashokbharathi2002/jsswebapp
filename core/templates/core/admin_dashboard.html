@@ -231,6 +231,19 @@
                             <h5 class="fw-bold text-white mb-2">Staff & Worker Directory</h5>
                             <p class="text-secondary small mb-4">View approved staff leads, edit worker details, and manage their assigned projects.</p>
                             
+                            <!-- Search Bar for Staff -->
+                            <form method="GET" class="mb-4">
+                                <input type="hidden" name="tab" value="staff">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-black border-secondary-subtle text-secondary"><i class="bi bi-search text-gradient-gold"></i></span>
+                                    <input type="text" name="worker_search" class="form-control bg-dark text-white border-secondary-subtle" placeholder="Search staff leads by Name or Unique ID..." value="{{ worker_search }}">
+                                    {% if worker_search %}
+                                        <a href="?tab=staff" class="btn btn-outline-secondary border-secondary-subtle text-secondary"><i class="bi bi-x-lg"></i> Clear</a>
+                                    {% endif %}
+                                    <button class="btn btn-gold text-white" type="submit">Search</button>
+                                </div>
+                            </form>
+                            
                             {% if staff_data_list %}
                                 <div class="table-responsive">
                                     <table class="table table-dark table-hover align-middle border-0 small">
@@ -239,6 +252,7 @@
                                                 <th>Staff User</th>
                                                 <th>Unique ID</th>
                                                 <th>Handling Stats</th>
+                                                <th>Monthly & Overall Payout</th>
                                                 <th>Contact Info</th>
                                                 <th>Action</th>
                                             </tr>
@@ -256,6 +270,11 @@
                                                         <div>Closed: <strong class="text-success">{{ item.completed_count }}</strong></div>
                                                     </td>
                                                     <td>
+                                                        <div class="text-white fw-bold">Base: ₹{{ item.staff.salary|floatformat:2 }}</div>
+                                                        <div class="text-success small mt-1">{{ current_month_name }}: ₹{{ item.calculated_salary_monthly|floatformat:2 }} <span class="text-secondary">({{ item.rating_pct_monthly|floatformat:1 }}%)</span></div>
+                                                        <div class="text-gradient-cyan small">Overall: ₹{{ item.calculated_salary_overall|floatformat:2 }} <span class="text-secondary">({{ item.rating_pct_overall|floatformat:1 }}%)</span></div>
+                                                    </td>
+                                                    <td>
                                                         <div>{{ item.staff.email }}</div>
                                                         <div class="text-secondary-50" style="font-size: 0.75rem;">Phone: {{ item.staff.phone_number }}</div>
                                                     </td>
@@ -267,7 +286,7 @@
                                                 </tr>
                                                 <!-- Collapsible Edit Row -->
                                                 <tr>
-                                                    <td colspan="5" class="p-0 border-0">
+                                                    <td colspan="6" class="p-0 border-0">
                                                         <div class="collapse" id="edit-staff-admin-{{ item.staff.id }}">
                                                             <div class="card collapse-card p-4 my-2 mx-3">
                                                                 <h6 class="fw-bold text-white mb-3">Update Details for Staff: {{ item.staff.username }}</h6>
@@ -299,9 +318,13 @@
                                                                             <label class="form-label text-white-50 small">WhatsApp</label>
                                                                             {{ item.edit_form.whatsapp_number }}
                                                                         </div>
-                                                                        <div class="col-md-4 mb-3">
+                                                                        <div class="col-md-2 mb-3">
                                                                             <label class="form-label text-white-50 small">Unique ID</label>
                                                                             {{ item.edit_form.employee_id }}
+                                                                        </div>
+                                                                        <div class="col-md-2 mb-3">
+                                                                            <label class="form-label text-white-50 small">Base Salary (₹)</label>
+                                                                            {{ item.edit_form.salary }}
                                                                         </div>
                                                                     </div>
                                                                     <div class="mb-3">
@@ -323,11 +346,11 @@
                                 </div>
                             {% else %}
                                 <div class="text-center py-4 bg-dark bg-opacity-30 rounded-4">
-                                    <h6 class="text-white mb-0">No Staff Leads registered.</h6>
+                                    <h6 class="text-white mb-0">No Staff Leads registered or matching search.</h6>
                                 </div>
                             {% endif %}
                         </div>
-
+ 
                         <!-- Sidebar Create Form -->
                         <div class="col-lg-4">
                             <div class="bg-black bg-opacity-35 p-4 rounded-4 border border-secondary-subtle">
@@ -363,9 +386,15 @@
                                             {{ staff_form.whatsapp_number }}
                                         </div>
                                     </div>
-                                    <div class="mb-2">
-                                        <label class="form-label text-white small">Unique ID (Optional)</label>
-                                        {{ staff_form.employee_id }}
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Unique ID (Optional)</label>
+                                            {{ staff_form.employee_id }}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Base Salary (₹)</label>
+                                            {{ staff_form.salary }}
+                                        </div>
                                     </div>
                                     <div class="mb-2">
                                         <label class="form-label text-white small">Bio</label>
@@ -380,15 +409,26 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Tab 3: Manage Employees -->
+                                <!-- Tab 3: Manage Employees -->
                 <div class="tab-pane fade" id="employees-pane" role="tabpanel" aria-labelledby="employees-tab">
                     <div class="row g-4">
                         <!-- Employees List -->
                         <div class="col-lg-8">
                             <h5 class="fw-bold text-white mb-2">Employees Directory</h5>
                             <p class="text-secondary small mb-4">View approved employees, track their active crew layouts, and update profiles.</p>
+                            
+                            <!-- Search Bar for Employees -->
+                            <form method="GET" class="mb-4">
+                                <input type="hidden" name="tab" value="employees">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-black border-secondary-subtle text-secondary"><i class="bi bi-search text-gradient-gold"></i></span>
+                                    <input type="text" name="worker_search" class="form-control bg-dark text-white border-secondary-subtle" placeholder="Search employees by Name or Unique ID..." value="{{ worker_search }}">
+                                    {% if worker_search %}
+                                        <a href="?tab=employees" class="btn btn-outline-secondary border-secondary-subtle text-secondary"><i class="bi bi-x-lg"></i> Clear</a>
+                                    {% endif %}
+                                    <button class="btn btn-gold text-white" type="submit">Search</button>
+                                </div>
+                            </form>
                             
                             {% if employees_data_list %}
                                 <div class="table-responsive">
@@ -398,6 +438,7 @@
                                                 <th>Employee User</th>
                                                 <th>Unique ID</th>
                                                 <th>Crew Allocation</th>
+                                                <th>Monthly & Overall Payout</th>
                                                 <th>Contact Info</th>
                                                 <th>Action</th>
                                             </tr>
@@ -412,7 +453,12 @@
                                                     <td class="fw-bold text-gradient-cyan">{{ item.employee.employee_id|default:"TBD" }}</td>
                                                     <td>
                                                         <span class="badge bg-info bg-opacity-20 text-info px-2 py-1 mb-1 d-inline-block">Active Deploys: {{ item.active_project_count }}</span>
-                                                        <div class="text-secondary-50 small" style="font-size: 0.7rem;">Crews: {{ item.current_project_summary|truncatechars:45 }}</div>
+                                                        <div class="text-secondary-50 small" style="font-size: 0.75rem;">Crews: {{ item.current_project_summary|truncatechars:45 }}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="text-white fw-bold">Base: ₹{{ item.employee.salary|floatformat:2 }}</div>
+                                                        <div class="text-success small mt-1">{{ current_month_name }}: ₹{{ item.calculated_salary_monthly|floatformat:2 }} <span class="text-secondary">({{ item.rating_pct_monthly|floatformat:1 }}%)</span></div>
+                                                        <div class="text-gradient-cyan small">Overall: ₹{{ item.calculated_salary_overall|floatformat:2 }} <span class="text-secondary">({{ item.rating_pct_overall|floatformat:1 }}%)</span></div>
                                                     </td>
                                                     <td>
                                                         <div>{{ item.employee.email }}</div>
@@ -426,7 +472,7 @@
                                                 </tr>
                                                 <!-- Collapsible Edit Row -->
                                                 <tr>
-                                                    <td colspan="5" class="p-0 border-0">
+                                                    <td colspan="6" class="p-0 border-0">
                                                         <div class="collapse" id="edit-emp-admin-{{ item.employee.id }}">
                                                             <div class="card collapse-card p-4 my-2 mx-3">
                                                                 <h6 class="fw-bold text-white mb-3">Update Details for Employee: {{ item.employee.username }}</h6>
@@ -458,9 +504,13 @@
                                                                             <label class="form-label text-white-50 small">WhatsApp</label>
                                                                             {{ item.edit_form.whatsapp_number }}
                                                                         </div>
-                                                                        <div class="col-md-4 mb-3">
+                                                                        <div class="col-md-2 mb-3">
                                                                             <label class="form-label text-white-50 small">Unique ID</label>
                                                                             {{ item.edit_form.employee_id }}
+                                                                        </div>
+                                                                        <div class="col-md-2 mb-3">
+                                                                            <label class="form-label text-white-50 small">Base Salary (₹)</label>
+                                                                            {{ item.edit_form.salary }}
                                                                         </div>
                                                                     </div>
                                                                     <div class="mb-3">
@@ -482,11 +532,11 @@
                                 </div>
                             {% else %}
                                 <div class="text-center py-4 bg-dark bg-opacity-30 rounded-4">
-                                    <h6 class="text-white mb-0">No Employees registered.</h6>
+                                    <h6 class="text-white mb-0">No Employees registered or matching search.</h6>
                                 </div>
                             {% endif %}
                         </div>
-
+ 
                         <!-- Sidebar Create Form -->
                         <div class="col-lg-4">
                             <div class="bg-black bg-opacity-35 p-4 rounded-4 border border-secondary-subtle">
@@ -522,9 +572,15 @@
                                             {{ employee_form.whatsapp_number }}
                                         </div>
                                     </div>
-                                    <div class="mb-2">
-                                        <label class="form-label text-white small">Unique ID (Optional)</label>
-                                        {{ employee_form.employee_id }}
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Unique ID (Optional)</label>
+                                            {{ employee_form.employee_id }}
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-white small">Base Salary (₹)</label>
+                                            {{ employee_form.salary }}
+                                        </div>
                                     </div>
                                     <div class="mb-2">
                                         <label class="form-label text-white small">Specialty / Bio</label>
@@ -644,136 +700,274 @@
                     <div class="row g-4">
                         <!-- Project Allocations List -->
                         <div class="col-lg-8">
-                            <h5 class="fw-bold text-white mb-3">Project Allocations</h5>
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="fw-bold text-white mb-0">Project Allocations</h5>
+                                <!-- Archiving Pills Navigation -->
+                                <ul class="nav nav-pills g-1 bg-black bg-opacity-30 p-1 rounded-3 small" id="projectArchivingTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active py-1 px-3" id="active-projects-tab" data-bs-toggle="pill" data-bs-target="#active-projects-pane" type="button" role="tab" aria-controls="active-projects-pane" aria-selected="true">
+                                            Active Trackers
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link py-1 px-3" id="archived-projects-tab" data-bs-toggle="pill" data-bs-target="#archived-projects-pane" type="button" role="tab" aria-controls="archived-projects-pane" aria-selected="false">
+                                            Archived History
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
                             
                             {% if all_projects %}
-                                <div class="table-responsive">
-                                    <table class="table table-dark table-hover align-middle border-0 small">
-                                        <thead>
-                                            <tr class="text-secondary">
-                                                <th>Project Details</th>
-                                                <th>Financials (INR)</th>
-                                                <th>Staff Lead</th>
-                                                <th>Milestone Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for item in all_projects %}
-                                                <tr>
-                                                    <td>
-                                                        <strong class="text-white">{{ item.project.title }}</strong>
-                                                        <div class="text-secondary" style="font-size: 0.75rem;">Client: {{ item.project.customer.get_full_name|default:item.project.customer.username }}</div>
-                                                        <div class="text-secondary-50" style="font-size: 0.7rem;"><i class="bi bi-calendar3 me-1"></i> {{ item.project.start_date|default:"N/A" }} to {{ item.project.end_date|default:"N/A" }}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="text-white">Val: ₹{{ item.project.total_value|floatformat:2 }}</div>
-                                                        <div class="text-success small">Paid: ₹{{ item.project.advances_paid|floatformat:2 }}</div>
-                                                        <div class="text-warning small">Bal: ₹{{ item.project.remaining_balance|floatformat:2 }}</div>
-                                                    </td>
-                                                    <td>
-                                                        {% if item.project.staff_incharge %}
-                                                            <div class="d-flex align-items-center">
-                                                                <span class="badge bg-secondary me-2">{{ item.project.staff_incharge.profile_picture_initials }}</span>
-                                                                <span class="text-white">{{ item.project.staff_incharge.get_full_name }}</span>
-                                                            </div>
-                                                        {% else %}
-                                                            <span class="text-secondary italic">None Assigned</span>
+                                <div class="tab-content" id="projectArchivingTabsContent">
+                                    <!-- Active Projects Tab Pane -->
+                                    <div class="tab-pane fade show active" id="active-projects-pane" role="tabpanel" aria-labelledby="active-projects-tab">
+                                        <div class="table-responsive">
+                                            <table class="table table-dark table-hover align-middle border-0 small">
+                                                <thead>
+                                                    <tr class="text-secondary">
+                                                        <th>Project Details</th>
+                                                        <th>Financials (INR)</th>
+                                                        <th>Staff Lead</th>
+                                                        <th>Milestone Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for item in all_projects %}
+                                                        {% if item.project.status != 'COMPLETED' %}
+                                                            <tr>
+                                                                <td>
+                                                                    <strong class="text-white">{{ item.project.title }}</strong>
+                                                                    <div class="text-secondary" style="font-size: 0.75rem;">Client: {{ item.project.customer.get_full_name|default:item.project.customer.username }}</div>
+                                                                    <div class="text-secondary-50" style="font-size: 0.7rem;"><i class="bi bi-calendar3 me-1"></i> {{ item.project.start_date|default:"N/A" }} to {{ item.project.end_date|default:"N/A" }}</div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="text-white">Val: ₹{{ item.project.total_value|floatformat:2 }}</div>
+                                                                    <div class="text-success small">Paid: ₹{{ item.project.advances_paid|floatformat:2 }}</div>
+                                                                    <div class="text-warning small">Bal: ₹{{ item.project.remaining_balance|floatformat:2 }}</div>
+                                                                </td>
+                                                                <td>
+                                                                    {% if item.project.staff_incharge %}
+                                                                        <div class="d-flex align-items-center">
+                                                                            <span class="badge bg-secondary me-2">{{ item.project.staff_incharge.profile_picture_initials }}</span>
+                                                                            <span class="text-white">{{ item.project.staff_incharge.get_full_name }}</span>
+                                                                        </div>
+                                                                    {% else %}
+                                                                        <span class="text-secondary italic">None Assigned</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td>
+                                                                    <span class="badge bg-warning text-dark">{{ item.project.get_status_display }}</span>
+                                                                    <div class="text-secondary-50 mt-1 mb-2" style="font-size: 0.7rem;">Crews: {{ item.project.laborers_count }} laborers</div>
+                                                                    <div class="d-flex flex-column gap-2">
+                                                                        <button class="btn btn-outline-gold action-btn-pill w-100" type="button" data-bs-toggle="collapse" data-bs-target="#editProjectCollapse{{ item.project.id }}">
+                                                                            <i class="bi bi-pencil-square"></i> Edit Tracker
+                                                                        </button>
+                                                                        <form method="POST" class="w-100">
+                                                                            {% csrf_token %}
+                                                                            <input type="hidden" name="action" value="close_project">
+                                                                            <input type="hidden" name="project_id" value="{{ item.project.id }}">
+                                                                            <button class="btn btn-success action-btn-pill text-white border-0 w-100" type="submit" onclick="return confirm('Are you sure you want to close and complete this project?');">
+                                                                                <i class="bi bi-check-circle-fill"></i> Close Project
+                                                                            </button>
+                                                                        </form>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                            <!-- Collapsible Project Edit Row -->
+                                                            <tr>
+                                                                <td colspan="4" class="p-0 border-0">
+                                                                    <div class="collapse" id="editProjectCollapse{{ item.project.id }}">
+                                                                        <div class="card collapse-card p-4 my-2 mx-3">
+                                                                            <form method="POST">
+                                                                                {% csrf_token %}
+                                                                                <input type="hidden" name="action" value="edit_project">
+                                                                                <input type="hidden" name="project_id" value="{{ item.project.id }}">
+                                                                                 
+                                                                                <h6 class="fw-bold text-gradient-gold mb-3 small"><i class="bi bi-pencil me-1"></i> Edit Project Details</h6>
+                                                                                 
+                                                                                <div class="row">
+                                                                                    <div class="col-md-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Customer/Client</label>
+                                                                                        {{ item.edit_form.customer }}
+                                                                                    </div>
+                                                                                    <div class="col-md-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Project Incharge (Staff)</label>
+                                                                                        {{ item.edit_form.staff_incharge }}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="mb-2">
+                                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Project Title</label>
+                                                                                    {{ item.edit_form.title }}
+                                                                                </div>
+                                                                                <div class="mb-2">
+                                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Milestone Status</label>
+                                                                                    {{ item.edit_form.status }}
+                                                                                </div>
+                                                                                <div class="row">
+                                                                                    <div class="col-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Contract Value (₹)</label>
+                                                                                        {{ item.edit_form.total_value }}
+                                                                                    </div>
+                                                                                    <div class="col-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Advances Paid (₹)</label>
+                                                                                        {{ item.edit_form.advances_paid }}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="row">
+                                                                                    <div class="col-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Start Date</label>
+                                                                                        {{ item.edit_form.start_date }}
+                                                                                    </div>
+                                                                                    <div class="col-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">End Date</label>
+                                                                                        {{ item.edit_form.end_date }}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="mb-2">
+                                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Laborers Count</label>
+                                                                                    {{ item.edit_form.laborers_count }}
+                                                                                </div>
+                                                                                <div class="mb-3">
+                                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Crew Specifications</label>
+                                                                                    {{ item.edit_form.crew_details }}
+                                                                                </div>
+                                                                                <div class="d-flex justify-content-end gap-2">
+                                                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#editProjectCollapse{{ item.project.id }}">Cancel</button>
+                                                                                    <button type="submit" class="btn btn-gold btn-sm text-white">Save Project</button>
+                                                                                </div>
+                                                                            </form>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
                                                         {% endif %}
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge bg-warning text-dark">{{ item.project.get_status_display }}</span>
-                                                        <div class="text-secondary-50 mt-1 mb-2" style="font-size: 0.7rem;">Crews: {{ item.project.laborers_count }} laborers</div>
-                                                        <div class="d-flex flex-column gap-2">
-                                                            <button class="btn btn-outline-gold action-btn-pill w-100" type="button" data-bs-toggle="collapse" data-bs-target="#editProjectCollapse{{ item.project.id }}">
-                                                                <i class="bi bi-pencil-square"></i> Edit Tracker
-                                                            </button>
-                                                            {% if item.project.status != 'COMPLETED' %}
-                                                                <form method="POST" class="w-100">
-                                                                    {% csrf_token %}
-                                                                    <input type="hidden" name="action" value="close_project">
-                                                                    <input type="hidden" name="project_id" value="{{ item.project.id }}">
-                                                                    <button class="btn btn-success action-btn-pill text-white border-0 w-100" type="submit" onclick="return confirm('Are you sure you want to close and complete this project?');">
-                                                                        <i class="bi bi-check-circle-fill"></i> Close Project
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Archived Projects Tab Pane -->
+                                    <div class="tab-pane fade" id="archived-projects-pane" role="tabpanel" aria-labelledby="archived-projects-tab">
+                                        <div class="table-responsive">
+                                            <table class="table table-dark table-hover align-middle border-0 small">
+                                                <thead>
+                                                    <tr class="text-secondary">
+                                                        <th>Project Details</th>
+                                                        <th>Financials (INR)</th>
+                                                        <th>Staff Lead</th>
+                                                        <th>Milestone Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for item in all_projects %}
+                                                        {% if item.project.status == 'COMPLETED' %}
+                                                            <tr>
+                                                                <td>
+                                                                    <strong class="text-white">{{ item.project.title }}</strong>
+                                                                    <div class="text-secondary" style="font-size: 0.75rem;">Client: {{ item.project.customer.get_full_name|default:item.project.customer.username }}</div>
+                                                                    <div class="text-secondary-50" style="font-size: 0.7rem;"><i class="bi bi-calendar3 me-1"></i> {{ item.project.start_date|default:"N/A" }} to {{ item.project.end_date|default:"N/A" }}</div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="text-white">Val: ₹{{ item.project.total_value|floatformat:2 }}</div>
+                                                                    <div class="text-success small">Paid: ₹{{ item.project.advances_paid|floatformat:2 }}</div>
+                                                                    <div class="text-warning small">Bal: ₹{{ item.project.remaining_balance|floatformat:2 }}</div>
+                                                                </td>
+                                                                <td>
+                                                                    {% if item.project.staff_incharge %}
+                                                                        <div class="d-flex align-items-center">
+                                                                            <span class="badge bg-secondary me-2">{{ item.project.staff_incharge.profile_picture_initials }}</span>
+                                                                            <span class="text-white">{{ item.project.staff_incharge.get_full_name }}</span>
+                                                                        </div>
+                                                                    {% else %}
+                                                                        <span class="text-secondary italic">None Assigned</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td>
+                                                                    <span class="badge bg-success text-white">{{ item.project.get_status_display }}</span>
+                                                                    <div class="text-secondary-50 mt-1 mb-2" style="font-size: 0.7rem;">Crews: {{ item.project.laborers_count }} laborers</div>
+                                                                    <button class="btn btn-outline-gold action-btn-pill w-100" type="button" data-bs-toggle="collapse" data-bs-target="#editProjectCollapseArchived{{ item.project.id }}">
+                                                                        <i class="bi bi-pencil-square"></i> Edit Tracker
                                                                     </button>
-                                                                </form>
-                                                            {% endif %}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                <!-- Collapsible Project Edit Row -->
-                                                <tr>
-                                                    <td colspan="4" class="p-0 border-0">
-                                                        <div class="collapse" id="editProjectCollapse{{ item.project.id }}">
-                                                            <div class="card collapse-card p-4 my-2 mx-3">
-                                                                <form method="POST">
-                                                                    {% csrf_token %}
-                                                                    <input type="hidden" name="action" value="edit_project">
-                                                                    <input type="hidden" name="project_id" value="{{ item.project.id }}">
-                                                                     
-                                                                    <h6 class="fw-bold text-gradient-gold mb-3 small"><i class="bi bi-pencil me-1"></i> Edit Project Details</h6>
-                                                                     
-                                                                    <div class="row">
-                                                                        <div class="col-md-6 mb-2">
-                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">Customer/Client</label>
-                                                                            {{ item.edit_form.customer }}
+                                                                </td>
+                                                            </tr>
+                                                            <!-- Collapsible Project Edit Row -->
+                                                            <tr>
+                                                                <td colspan="4" class="p-0 border-0">
+                                                                    <div class="collapse" id="editProjectCollapseArchived{{ item.project.id }}">
+                                                                        <div class="card collapse-card p-4 my-2 mx-3">
+                                                                            <form method="POST">
+                                                                                {% csrf_token %}
+                                                                                <input type="hidden" name="action" value="edit_project">
+                                                                                <input type="hidden" name="project_id" value="{{ item.project.id }}">
+                                                                                 
+                                                                                <h6 class="fw-bold text-gradient-gold mb-3 small"><i class="bi bi-pencil me-1"></i> Edit Project Details</h6>
+                                                                                 
+                                                                                <div class="row">
+                                                                                    <div class="col-md-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Customer/Client</label>
+                                                                                        {{ item.edit_form.customer }}
+                                                                                    </div>
+                                                                                    <div class="col-md-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Project Incharge (Staff)</label>
+                                                                                        {{ item.edit_form.staff_incharge }}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="mb-2">
+                                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Project Title</label>
+                                                                                    {{ item.edit_form.title }}
+                                                                                </div>
+                                                                                <div class="mb-2">
+                                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Milestone Status</label>
+                                                                                    {{ item.edit_form.status }}
+                                                                                </div>
+                                                                                <div class="row">
+                                                                                    <div class="col-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Contract Value (₹)</label>
+                                                                                        {{ item.edit_form.total_value }}
+                                                                                    </div>
+                                                                                    <div class="col-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Advances Paid (₹)</label>
+                                                                                        {{ item.edit_form.advances_paid }}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="row">
+                                                                                    <div class="col-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Start Date</label>
+                                                                                        {{ item.edit_form.start_date }}
+                                                                                    </div>
+                                                                                    <div class="col-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">End Date</label>
+                                                                                        {{ item.edit_form.end_date }}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="mb-2">
+                                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Laborers Count</label>
+                                                                                    {{ item.edit_form.laborers_count }}
+                                                                                </div>
+                                                                                <div class="mb-3">
+                                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Crew Specifications</label>
+                                                                                    {{ item.edit_form.crew_details }}
+                                                                                </div>
+                                                                                <div class="d-flex justify-content-end gap-2">
+                                                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#editProjectCollapseArchived{{ item.project.id }}">Cancel</button>
+                                                                                    <button type="submit" class="btn btn-gold btn-sm text-white">Save Project</button>
+                                                                                </div>
+                                                                            </form>
                                                                         </div>
-                                                                        <div class="col-md-6 mb-2">
-                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">Project Incharge (Staff)</label>
-                                                                            {{ item.edit_form.staff_incharge }}
-                                                                        </div>
                                                                     </div>
-                                                                    <div class="mb-2">
-                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Project Title</label>
-                                                                        {{ item.edit_form.title }}
-                                                                    </div>
-                                                                    <div class="mb-2">
-                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Milestone Status</label>
-                                                                        {{ item.edit_form.status }}
-                                                                    </div>
-                                                                    <div class="row">
-                                                                        <div class="col-6 mb-2">
-                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">Contract Value (₹)</label>
-                                                                            {{ item.edit_form.total_value }}
-                                                                        </div>
-                                                                        <div class="col-6 mb-2">
-                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">Advances Paid (₹)</label>
-                                                                            {{ item.edit_form.advances_paid }}
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="row">
-                                                                        <div class="col-6 mb-2">
-                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">Start Date</label>
-                                                                            {{ item.edit_form.start_date }}
-                                                                        </div>
-                                                                        <div class="col-6 mb-2">
-                                                                            <label class="form-label text-white small" style="font-size: 0.75rem;">End Date</label>
-                                                                            {{ item.edit_form.end_date }}
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="mb-2">
-                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Laborers Count</label>
-                                                                        {{ item.edit_form.laborers_count }}
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Crew Specifications</label>
-                                                                        {{ item.edit_form.crew_details }}
-                                                                    </div>
-                                                                    <div class="d-flex justify-content-end gap-2">
-                                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#editProjectCollapse{{ item.project.id }}">Cancel</button>
-                                                                        <button type="submit" class="btn btn-gold btn-sm text-white">Save Project</button>
-                                                                    </div>
-                                                                </form>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
                             {% else %}
                                 <div class="text-center py-5 bg-dark bg-opacity-30 rounded-4">
-                                    <h6 class="text-white mb-0">No active Solar projects assigned.</h6>
+                                    <h6 class="text-white mb-0">No Solar projects assigned.</h6>
                                 </div>
                             {% endif %}
                         </div>

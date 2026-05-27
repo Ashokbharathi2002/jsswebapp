@@ -218,6 +218,38 @@
             {% endif %}
         </div>
 
+        <!-- Salary Details Card -->
+        <div class="card glass-card p-4 border-0 mb-4 text-center">
+            <h5 class="fw-bold text-white mb-3 d-flex align-items-center justify-content-center">
+                <i class="bi bi-cash-stack text-success me-2"></i> Salary & Payroll
+            </h5>
+            <div class="bg-black bg-opacity-30 p-3 rounded-4 mb-3 text-start small">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary">Base Salary:</span>
+                    <span class="text-white fw-bold">₹{{ request.user.salary|floatformat:2 }}</span>
+                </div>
+                <hr class="my-2 border-secondary-subtle">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary">Current Month ({{ current_month_name }}):</span>
+                    <span class="text-success fw-bold">₹{{ calculated_salary_monthly|floatformat:2 }}</span>
+                </div>
+                <div class="text-secondary-50" style="font-size: 0.7rem; margin-top: -3px;">
+                    Adjusted by monthly attendance ({{ rating_pct_monthly|floatformat:1 }}%)
+                </div>
+                <hr class="my-2 border-secondary-subtle">
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Overall Salary (All-time):</span>
+                    <span class="text-gradient-gold fw-bold">₹{{ calculated_salary_overall|floatformat:2 }}</span>
+                </div>
+                <div class="text-secondary-50" style="font-size: 0.7rem; margin-top: -3px;">
+                    Adjusted by overall attendance ({{ rating_pct_overall|floatformat:1 }}%)
+                </div>
+            </div>
+            <div class="text-secondary-50 text-start" style="font-size: 0.65rem;">
+                <i class="bi bi-info-circle me-1"></i> Salary details are locked. Only Admins or Super Users can update base pay rates.
+            </div>
+        </div>
+
         <!-- Completed Projects Sidebar -->
         <div class="card glass-card p-4 border-0">
             <h5 class="fw-bold text-white mb-4 d-flex align-items-center">

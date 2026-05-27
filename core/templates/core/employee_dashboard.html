@@ -43,12 +43,42 @@
         </div>
         
         <!-- Attendance Rating Summary Card -->
-        <div class="card glass-card p-4 border-0 text-center">
+        <div class="card glass-card p-4 border-0 text-center mb-4">
             <h6 class="text-secondary fw-semibold mb-2">Overall Attendance Rating</h6>
             <h1 class="fw-extrabold {% if attendance_rating_pct >= 90 %}text-success{% elif attendance_rating_pct >= 75 %}text-warning{% else %}text-danger{% endif %} mb-1">{{ attendance_rating_pct|floatformat:1 }}%</h1>
             <p class="text-secondary-50 small mb-0">Present Days vs Scheduled Days</p>
             <div class="progress mt-3 bg-dark" style="height: 8px;">
                 <div class="progress-bar bg-success" role="progressbar" style="width: {{ attendance_rating_pct }}%;" aria-valuenow="{{ attendance_rating_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+
+        <!-- Salary Details Card -->
+        <div class="card glass-card p-4 border-0 text-center">
+            <h6 class="text-secondary fw-semibold mb-3"><i class="bi bi-cash-stack text-success me-2"></i> Salary & Payroll</h6>
+            <div class="bg-black bg-opacity-30 p-3 rounded-4 mb-3 text-start small">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary">Base Salary:</span>
+                    <span class="text-white fw-bold">₹{{ request.user.salary|floatformat:2 }}</span>
+                </div>
+                <hr class="my-2 border-secondary-subtle">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary">Current Month ({{ current_month_name }}):</span>
+                    <span class="text-success fw-bold">₹{{ calculated_salary_monthly|floatformat:2 }}</span>
+                </div>
+                <div class="text-secondary-50" style="font-size: 0.7rem; margin-top: -3px;">
+                    Adjusted by monthly attendance ({{ rating_pct_monthly|floatformat:1 }}%)
+                </div>
+                <hr class="my-2 border-secondary-subtle">
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary">Overall Salary (All-time):</span>
+                    <span class="text-gradient-gold fw-bold">₹{{ calculated_salary_overall|floatformat:2 }}</span>
+                </div>
+                <div class="text-secondary-50" style="font-size: 0.7rem; margin-top: -3px;">
+                    Adjusted by overall attendance ({{ rating_pct_overall|floatformat:1 }}%)
+                </div>
+            </div>
+            <div class="text-secondary-50 text-start" style="font-size: 0.65rem;">
+                <i class="bi bi-info-circle me-1"></i> Salary details are locked. Only Admins or Super Users can update base pay rates.
             </div>
         </div>
     </div>

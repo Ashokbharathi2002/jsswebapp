@@ -180,6 +180,15 @@ def staff_dashboard(request):
     present_days = attendance_records.filter(status='PRESENT').count()
     rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
 
+    calculated_salary_overall = Decimal(float(staff_user.salary or 0.00) * (rating_pct / 100.0))
+
+    # Monthly
+    now = timezone.now()
+    total_days_monthly = Attendance.objects.filter(user=staff_user, date__year=now.year, date__month=now.month).count()
+    present_days_monthly = Attendance.objects.filter(user=staff_user, status='PRESENT', date__year=now.year, date__month=now.month).count()
+    rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
+    calculated_salary_monthly = Decimal(float(staff_user.salary or 0.00) * (rating_pct_monthly / 100.0))
+
     # Project updates processing (Staff updating progress/laborers/crew)
     if request.method == 'POST':
         project_id = request.POST.get('project_id')
@@ -208,6 +217,11 @@ def staff_dashboard(request):
         'project_update_forms': forms_list if 'forms_list' in locals() else [],
         'attendance_records': attendance_records[:15],
         'attendance_rating_pct': rating_pct,
+        'rating_pct_overall': rating_pct,
+        'calculated_salary_overall': calculated_salary_overall,
+        'rating_pct_monthly': rating_pct_monthly,
+        'calculated_salary_monthly': calculated_salary_monthly,
+        'current_month_name': now.strftime('%B'),
     }
     return render(request, 'core/staff_dashboard.html', context)
 
@@ -231,11 +245,25 @@ def employee_dashboard(request):
     total_days = attendance_records.count()
     present_days = attendance_records.filter(status='PRESENT').count()
     rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
+
+    calculated_salary_overall = Decimal(float(employee_user.salary or 0.00) * (rating_pct / 100.0))
+
+    # Monthly
+    now = timezone.now()
+    total_days_monthly = Attendance.objects.filter(user=employee_user, date__year=now.year, date__month=now.month).count()
+    present_days_monthly = Attendance.objects.filter(user=employee_user, status='PRESENT', date__year=now.year, date__month=now.month).count()
+    rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
+    calculated_salary_monthly = Decimal(float(employee_user.salary or 0.00) * (rating_pct_monthly / 100.0))
     
     context = {
         'active_projects': active_projects,
         'attendance_records': attendance_records[:15],
         'attendance_rating_pct': rating_pct,
+        'rating_pct_overall': rating_pct,
+        'calculated_salary_overall': calculated_salary_overall,
+        'rating_pct_monthly': rating_pct_monthly,
+        'calculated_salary_monthly': calculated_salary_monthly,
+        'current_month_name': now.strftime('%B'),
     }
     return render(request, 'core/employee_dashboard.html', context)
 
@@ -255,7 +283,23 @@ def admin_dashboard(request):
     pending_users = CustomUser.objects.filter(role__in=['CUSTOMER', 'STAFF', 'EMPLOYEE'], is_approved=False).order_by('-date_joined')
     staff_members = CustomUser.objects.filter(role='STAFF').order_by('username')
     employees_members = CustomUser.objects.filter(role='EMPLOYEE').order_by('username')
-    
+
+    # Worker search query based on name or employee ID
+    worker_search = request.GET.get('worker_search', '').strip()
+    if worker_search:
+        staff_members = staff_members.filter(
+            Q(username__icontains=worker_search) |
+            Q(first_name__icontains=worker_search) |
+            Q(last_name__icontains=worker_search) |
+            Q(employee_id__icontains=worker_search)
+        )
+        employees_members = employees_members.filter(
+            Q(username__icontains=worker_search) |
+            Q(first_name__icontains=worker_search) |
+            Q(last_name__icontains=worker_search) |
+            Q(employee_id__icontains=worker_search)
+        )
+
     # Pre-populate Client details list with edit forms
     customer_data_list = []
     for customer in CustomUser.objects.filter(role='CUSTOMER').order_by('username'):
@@ -285,13 +329,30 @@ def admin_dashboard(request):
             if p.crew_details:
                 crew_details_list.append(f"{p.title}: {p.crew_details} ({p.laborers_count} laborers)")
 
+        # Salary calculations
+        total_days = Attendance.objects.filter(user=staff).count()
+        present_days = Attendance.objects.filter(user=staff, status='PRESENT').count()
+        rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
+        calculated_salary_overall = Decimal(float(staff.salary or 0.00) * (rating_pct / 100.0))
+
+        # Monthly
+        now = timezone.now()
+        total_days_monthly = Attendance.objects.filter(user=staff, date__year=now.year, date__month=now.month).count()
+        present_days_monthly = Attendance.objects.filter(user=staff, status='PRESENT', date__year=now.year, date__month=now.month).count()
+        rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
+        calculated_salary_monthly = Decimal(float(staff.salary or 0.00) * (rating_pct_monthly / 100.0))
+
         staff_data_list.append({
             'staff': staff,
             'completed_count': completed_count,
             'active_count': active_count,
             'current_project': current_assigned_project,
             'crew_summary': ", ".join(crew_details_list) if crew_details_list else "No active crew assigned",
-            'edit_form': StaffEditForm(instance=staff)
+            'edit_form': StaffEditForm(instance=staff),
+            'rating_pct_overall': rating_pct,
+            'calculated_salary_overall': calculated_salary_overall,
+            'rating_pct_monthly': rating_pct_monthly,
+            'calculated_salary_monthly': calculated_salary_monthly,
         })
 
     # Pre-populate Employees list with edit forms
@@ -301,12 +362,29 @@ def admin_dashboard(request):
         active_crews = SolarInstallationProject.objects.filter(
             Q(crew_details__icontains=emp.username) | Q(crew_details__icontains=emp.employee_id)
         ).exclude(status__in=['COMPLETED', 'PENDING_APPROVAL'])
+
+        # Salary calculations
+        total_days = Attendance.objects.filter(user=emp).count()
+        present_days = Attendance.objects.filter(user=emp, status='PRESENT').count()
+        rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
+        calculated_salary_overall = Decimal(float(emp.salary or 0.00) * (rating_pct / 100.0))
+
+        # Monthly
+        now = timezone.now()
+        total_days_monthly = Attendance.objects.filter(user=emp, date__year=now.year, date__month=now.month).count()
+        present_days_monthly = Attendance.objects.filter(user=emp, status='PRESENT', date__year=now.year, date__month=now.month).count()
+        rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
+        calculated_salary_monthly = Decimal(float(emp.salary or 0.00) * (rating_pct_monthly / 100.0))
         
         employees_data_list.append({
             'employee': emp,
             'active_project_count': active_crews.count(),
             'current_project_summary': ", ".join([p.title for p in active_crews]) if active_crews.exists() else "Unassigned",
-            'edit_form': EmployeeEditForm(instance=emp)
+            'edit_form': EmployeeEditForm(instance=emp),
+            'rating_pct_overall': rating_pct,
+            'calculated_salary_overall': calculated_salary_overall,
+            'rating_pct_monthly': rating_pct_monthly,
+            'calculated_salary_monthly': calculated_salary_monthly,
         })
 
     # Load Attendance list for selected date
@@ -333,11 +411,24 @@ def admin_dashboard(request):
         total_days = Attendance.objects.filter(user=worker).count()
         present_days = Attendance.objects.filter(user=worker, status='PRESENT').count()
         rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
+        
+        calculated_salary_overall = Decimal(float(worker.salary or 0.00) * (rating_pct / 100.0))
+        
+        # Monthly
+        now = timezone.now()
+        total_days_monthly = Attendance.objects.filter(user=worker, date__year=now.year, date__month=now.month).count()
+        present_days_monthly = Attendance.objects.filter(user=worker, status='PRESENT', date__year=now.year, date__month=now.month).count()
+        rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
+        calculated_salary_monthly = Decimal(float(worker.salary or 0.00) * (rating_pct_monthly / 100.0))
+
         attendance_stats.append({
             'worker': worker,
             'total_days': total_days,
             'present_days': present_days,
-            'rating_pct': rating_pct
+            'rating_pct': rating_pct,
+            'calculated_salary_overall': calculated_salary_overall,
+            'rating_pct_monthly': rating_pct_monthly,
+            'calculated_salary_monthly': calculated_salary_monthly,
         })
 
     # Form handling
@@ -489,6 +580,10 @@ def admin_dashboard(request):
         'pending_complaints': pending_complaints,
         'resolved_complaints': resolved_complaints,
         'pending_complaints_count': pending_complaints_count,
+        
+        # Worker search
+        'worker_search': worker_search,
+        'current_month_name': timezone.now().strftime('%B'),
     }
     return render(request, 'core/admin_dashboard.html', context)
 
@@ -509,6 +604,25 @@ def superuser_dashboard(request):
 
     # 2. Staff list
     staff_members = CustomUser.objects.filter(role='STAFF').order_by('username')
+    # 3. Employee list
+    employees_members = CustomUser.objects.filter(role='EMPLOYEE').order_by('username')
+
+    # Worker search query based on name or employee ID
+    worker_search = request.GET.get('worker_search', '').strip()
+    if worker_search:
+        staff_members = staff_members.filter(
+            Q(username__icontains=worker_search) |
+            Q(first_name__icontains=worker_search) |
+            Q(last_name__icontains=worker_search) |
+            Q(employee_id__icontains=worker_search)
+        )
+        employees_members = employees_members.filter(
+            Q(username__icontains=worker_search) |
+            Q(first_name__icontains=worker_search) |
+            Q(last_name__icontains=worker_search) |
+            Q(employee_id__icontains=worker_search)
+        )
+
     staff_data_list = []
     for staff in staff_members:
         completed_count = SolarInstallationProject.objects.filter(staff_incharge=staff, status='COMPLETED').count()
@@ -520,28 +634,60 @@ def superuser_dashboard(request):
             if p.crew_details:
                 crew_details_list.append(f"{p.title}: {p.crew_details} ({p.laborers_count} laborers)")
 
+        # Salary calculations
+        total_days = Attendance.objects.filter(user=staff).count()
+        present_days = Attendance.objects.filter(user=staff, status='PRESENT').count()
+        rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
+        calculated_salary_overall = Decimal(float(staff.salary or 0.00) * (rating_pct / 100.0))
+
+        # Monthly
+        now = timezone.now()
+        total_days_monthly = Attendance.objects.filter(user=staff, date__year=now.year, date__month=now.month).count()
+        present_days_monthly = Attendance.objects.filter(user=staff, status='PRESENT', date__year=now.year, date__month=now.month).count()
+        rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
+        calculated_salary_monthly = Decimal(float(staff.salary or 0.00) * (rating_pct_monthly / 100.0))
+
         staff_data_list.append({
             'staff': staff,
             'completed_count': completed_count,
             'active_count': active_count,
             'current_project': current_assigned_project,
             'crew_summary': ", ".join(crew_details_list) if crew_details_list else "No active crew assigned",
-            'edit_form': StaffEditForm(instance=staff)
+            'edit_form': StaffEditForm(instance=staff),
+            'rating_pct_overall': rating_pct,
+            'calculated_salary_overall': calculated_salary_overall,
+            'rating_pct_monthly': rating_pct_monthly,
+            'calculated_salary_monthly': calculated_salary_monthly,
         })
 
-    # 3. Employee list
-    employees_members = CustomUser.objects.filter(role='EMPLOYEE').order_by('username')
     employees_data_list = []
     for emp in employees_members:
         active_crews = SolarInstallationProject.objects.filter(
             Q(crew_details__icontains=emp.username) | Q(crew_details__icontains=emp.employee_id)
         ).exclude(status__in=['COMPLETED', 'PENDING_APPROVAL'])
         
+        # Salary calculations
+        total_days = Attendance.objects.filter(user=emp).count()
+        present_days = Attendance.objects.filter(user=emp, status='PRESENT').count()
+        rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
+        calculated_salary_overall = Decimal(float(emp.salary or 0.00) * (rating_pct / 100.0))
+
+        # Monthly
+        now = timezone.now()
+        total_days_monthly = Attendance.objects.filter(user=emp, date__year=now.year, date__month=now.month).count()
+        present_days_monthly = Attendance.objects.filter(user=emp, status='PRESENT', date__year=now.year, date__month=now.month).count()
+        rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
+        calculated_salary_monthly = Decimal(float(emp.salary or 0.00) * (rating_pct_monthly / 100.0))
+
         employees_data_list.append({
             'employee': emp,
             'active_project_count': active_crews.count(),
             'current_project_summary': ", ".join([p.title for p in active_crews]) if active_crews.exists() else "Unassigned",
-            'edit_form': EmployeeEditForm(instance=emp)
+            'edit_form': EmployeeEditForm(instance=emp),
+            'rating_pct_overall': rating_pct,
+            'calculated_salary_overall': calculated_salary_overall,
+            'rating_pct_monthly': rating_pct_monthly,
+            'calculated_salary_monthly': calculated_salary_monthly,
         })
 
     # 4. Customer list
@@ -584,11 +730,24 @@ def superuser_dashboard(request):
         total_days = Attendance.objects.filter(user=worker).count()
         present_days = Attendance.objects.filter(user=worker, status='PRESENT').count()
         rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
+
+        calculated_salary_overall = Decimal(float(worker.salary or 0.00) * (rating_pct / 100.0))
+
+        # Monthly
+        now = timezone.now()
+        total_days_monthly = Attendance.objects.filter(user=worker, date__year=now.year, date__month=now.month).count()
+        present_days_monthly = Attendance.objects.filter(user=worker, status='PRESENT', date__year=now.year, date__month=now.month).count()
+        rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
+        calculated_salary_monthly = Decimal(float(worker.salary or 0.00) * (rating_pct_monthly / 100.0))
+
         attendance_stats.append({
             'worker': worker,
             'total_days': total_days,
             'present_days': present_days,
-            'rating_pct': rating_pct
+            'rating_pct': rating_pct,
+            'calculated_salary_overall': calculated_salary_overall,
+            'rating_pct_monthly': rating_pct_monthly,
+            'calculated_salary_monthly': calculated_salary_monthly,
         })
 
     # POST Handling
@@ -838,6 +997,10 @@ def superuser_dashboard(request):
         'pending_complaints': pending_complaints,
         'resolved_complaints': resolved_complaints,
         'pending_complaints_count': pending_complaints_count,
+
+        # Worker search
+        'worker_search': worker_search,
+        'current_month_name': timezone.now().strftime('%B'),
     }
     return render(request, 'core/superuser_dashboard.html', context)
 

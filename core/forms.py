@@ -41,7 +41,7 @@ class StaffCreationForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number', 'employee_id', 'bio']
+        fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number', 'employee_id', 'bio', 'salary']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
@@ -51,6 +51,7 @@ class StaffCreationForm(forms.ModelForm):
             'whatsapp_number': forms.TextInput(attrs={'class': 'form-control'}),
             'employee_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional - Auto-generated if left blank'}),
             'bio': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'salary': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Monthly base salary'}),
         }
 
     def save(self, commit=True):
@@ -68,7 +69,7 @@ class EmployeeCreationForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number', 'employee_id', 'bio']
+        fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number', 'employee_id', 'bio', 'salary']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
@@ -78,6 +79,7 @@ class EmployeeCreationForm(forms.ModelForm):
             'whatsapp_number': forms.TextInput(attrs={'class': 'form-control'}),
             'employee_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional - Auto-generated if left blank'}),
             'bio': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'salary': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Monthly base salary'}),
         }
 
     def save(self, commit=True):
@@ -208,7 +210,7 @@ class StaffProjectUpdateForm(forms.ModelForm):
 class StaffEditForm(forms.ModelForm):
     class Meta:
         model = CustomUser
-        fields = ['email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number', 'employee_id', 'bio']
+        fields = ['email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number', 'employee_id', 'bio', 'salary']
         widgets = {
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -217,13 +219,14 @@ class StaffEditForm(forms.ModelForm):
             'whatsapp_number': forms.TextInput(attrs={'class': 'form-control'}),
             'employee_id': forms.TextInput(attrs={'class': 'form-control'}),
             'bio': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'salary': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Monthly base salary'}),
         }
 
 
 class EmployeeEditForm(forms.ModelForm):
     class Meta:
         model = CustomUser
-        fields = ['email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number', 'employee_id', 'bio']
+        fields = ['email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number', 'employee_id', 'bio', 'salary']
         widgets = {
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -232,6 +235,7 @@ class EmployeeEditForm(forms.ModelForm):
             'whatsapp_number': forms.TextInput(attrs={'class': 'form-control'}),
             'employee_id': forms.TextInput(attrs={'class': 'form-control'}),
             'bio': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'salary': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Monthly base salary'}),
         }
 
 

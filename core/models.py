@@ -18,6 +18,7 @@ class CustomUser(AbstractUser):
     
     # Unique ID number for Staff and Employees
     employee_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    salary = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, blank=True, help_text="Monthly base salary")
 
     def save(self, *args, **kwargs):
         # Automatically approve Super Users and Admins
