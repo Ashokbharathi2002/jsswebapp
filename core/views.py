@@ -166,10 +166,10 @@ def staff_dashboard(request):
     )
     closed_clients_count = closed_projects.values('customer').distinct().count()
 
-    # 3. Total value of the projects assigned to them
+    # 3. Total value of the active projects assigned to them
     total_assigned_value = SolarInstallationProject.objects.filter(
         staff_incharge=staff_user
-    ).aggregate(Sum('total_value'))['total_value__sum'] or 0.00
+    ).exclude(status='COMPLETED').aggregate(Sum('total_value'))['total_value__sum'] or 0.00
 
     # 4. Total number of laborers assisting them on-site currently
     total_laborers = active_projects.aggregate(Sum('laborers_count'))['laborers_count__sum'] or 0
