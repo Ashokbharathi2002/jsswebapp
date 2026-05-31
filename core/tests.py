@@ -438,3 +438,51 @@ class SuperUserDashboardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Closed Project Value")
         self.assertContains(response, "150000.00")
+
+    def test_self_service_password_change_success(self):
+        """Verify any logged-in user can change their password successfully."""
+        self.client.login(username="testcustomer", password="customerpassword")
+        response = self.client.post(reverse('change_password'), {
+            'current_password': 'customerpassword',
+            'new_password': 'newpassword123',
+            'confirm_new_password': 'newpassword123'
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify the password was actually updated and the user can log in with it
+        self.client.logout()
+        login_success = self.client.login(username="testcustomer", password="newpassword123")
+        self.assertTrue(login_success)
+
+    def test_self_service_password_change_incorrect_current(self):
+        """Verify password change fails if the current password is wrong."""
+        self.client.login(username="testcustomer", password="customerpassword")
+        response = self.client.post(reverse('change_password'), {
+            'current_password': 'wrongcurrentpassword',
+            'new_password': 'newpassword123',
+            'confirm_new_password': 'newpassword123'
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify password remains unchanged
+        self.client.logout()
+        login_fails = self.client.login(username="testcustomer", password="newpassword123")
+        self.assertFalse(login_fails)
+        login_works = self.client.login(username="testcustomer", password="customerpassword")
+        self.assertTrue(login_works)
+
+    def test_admin_force_reset_staff_password(self):
+        """Verify an administrator can force-reset a staff lead's password from the admin dashboard."""
+        self.client.login(username="testadmin", password="adminpassword")
+        response = self.client.post(reverse('admin_dashboard'), {
+            'action': 'reset_password',
+            'user_id': self.test_staff.id,
+            'new_password': 'newstaffpassword123'
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify the staff password is updated and they can log in
+        self.client.logout()
+        login_success = self.client.login(username="teststaff", password="newstaffpassword123")
+        self.assertTrue(login_success)
+

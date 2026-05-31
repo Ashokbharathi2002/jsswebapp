@@ -26,4 +26,5 @@ urlpatterns = [
     path('admin/attendance/export/', views.export_attendance_csv, name='export_attendance_csv'),
     path('admin/projects/export/', views.export_projects_csv, name='export_projects_csv'),
     path('admin/salaries/export/', views.export_salaries_csv, name='export_salaries_csv'),
+    path('change-password/', views.change_password_view, name='change_password'),
 ]

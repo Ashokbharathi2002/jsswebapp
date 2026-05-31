@@ -279,9 +279,14 @@
                                                         <div class="text-secondary-50" style="font-size: 0.75rem;">Phone: {{ item.staff.phone_number }}</div>
                                                     </td>
                                                     <td>
-                                                        <button class="btn btn-outline-gold action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#edit-staff-admin-{{ item.staff.id }}">
-                                                            <i class="bi bi-pencil-fill me-1"></i>Edit
-                                                        </button>
+                                                        <div class="d-flex gap-2">
+                                                            <button class="btn btn-outline-gold action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#edit-staff-admin-{{ item.staff.id }}">
+                                                                <i class="bi bi-pencil-fill me-1"></i>Edit
+                                                            </button>
+                                                            <button class="btn btn-outline-danger action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#reset-staff-admin-{{ item.staff.id }}">
+                                                                <i class="bi bi-key-fill me-1"></i>Reset
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                                 <!-- Collapsible Edit Row -->
@@ -334,6 +339,31 @@
                                                                     <div class="d-flex justify-content-end gap-2">
                                                                         <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#edit-staff-admin-{{ item.staff.id }}">Cancel</button>
                                                                         <button type="submit" class="btn btn-gold btn-sm text-white">Save changes</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <!-- Collapsible Reset Password Row -->
+                                                <tr>
+                                                    <td colspan="6" class="p-0 border-0">
+                                                        <div class="collapse" id="reset-staff-admin-{{ item.staff.id }}">
+                                                            <div class="card collapse-card p-4 my-2 mx-3" style="border-color: rgba(244, 63, 94, 0.3) !important;">
+                                                                <h6 class="fw-bold text-danger mb-3">Reset Password for Staff: {{ item.staff.username }}</h6>
+                                                                <form method="POST">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="action" value="reset_password">
+                                                                    <input type="hidden" name="user_id" value="{{ item.staff.id }}">
+                                                                    
+                                                                    <div class="mb-3 text-start">
+                                                                        <label class="form-label text-white-50 small">New Password</label>
+                                                                        <input type="password" name="new_password" class="form-control" placeholder="Enter new custom password..." required>
+                                                                    </div>
+                                                                    
+                                                                    <div class="d-flex justify-content-end gap-2">
+                                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#reset-staff-admin-{{ item.staff.id }}">Cancel</button>
+                                                                        <button type="submit" class="btn btn-danger btn-sm text-white border-0 px-3 bg-danger">Force Reset Password</button>
                                                                     </div>
                                                                 </form>
                                                             </div>
@@ -466,9 +496,14 @@
                                                         <div class="text-secondary-50" style="font-size: 0.75rem;">Phone: {{ item.employee.phone_number }}</div>
                                                     </td>
                                                     <td>
-                                                        <button class="btn btn-outline-gold action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#edit-emp-admin-{{ item.employee.id }}">
-                                                            <i class="bi bi-pencil-fill me-1"></i>Edit
-                                                        </button>
+                                                        <div class="d-flex gap-2">
+                                                            <button class="btn btn-outline-gold action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#edit-emp-admin-{{ item.employee.id }}">
+                                                                <i class="bi bi-pencil-fill me-1"></i>Edit
+                                                            </button>
+                                                            <button class="btn btn-outline-danger action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#reset-emp-admin-{{ item.employee.id }}">
+                                                                <i class="bi bi-key-fill me-1"></i>Reset
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                                 <!-- Collapsible Edit Row -->
@@ -521,6 +556,31 @@
                                                                     <div class="d-flex justify-content-end gap-2">
                                                                         <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#edit-emp-admin-{{ item.employee.id }}">Cancel</button>
                                                                         <button type="submit" class="btn btn-gold btn-sm text-white">Save changes</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <!-- Collapsible Reset Password Row -->
+                                                <tr>
+                                                    <td colspan="6" class="p-0 border-0">
+                                                        <div class="collapse" id="reset-emp-admin-{{ item.employee.id }}">
+                                                            <div class="card collapse-card p-4 my-2 mx-3" style="border-color: rgba(244, 63, 94, 0.3) !important;">
+                                                                <h6 class="fw-bold text-danger mb-3">Reset Password for Employee: {{ item.employee.username }}</h6>
+                                                                <form method="POST">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="action" value="reset_password">
+                                                                    <input type="hidden" name="user_id" value="{{ item.employee.id }}">
+                                                                    
+                                                                    <div class="mb-3 text-start">
+                                                                        <label class="form-label text-white-50 small">New Password</label>
+                                                                        <input type="password" name="new_password" class="form-control" placeholder="Enter new custom password..." required>
+                                                                    </div>
+                                                                    
+                                                                    <div class="d-flex justify-content-end gap-2">
+                                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#reset-emp-admin-{{ item.employee.id }}">Cancel</button>
+                                                                        <button type="submit" class="btn btn-danger btn-sm text-white border-0 px-3 bg-danger">Force Reset Password</button>
                                                                     </div>
                                                                 </form>
                                                             </div>
@@ -1085,12 +1145,15 @@
                                                         {% endif %}
                                                     </td>
                                                     <td class="text-end">
-                                                        <button class="btn btn-outline-gold action-btn-pill me-1" type="button" data-bs-toggle="collapse" data-bs-target="#editCustomerCollapse{{ item.customer.id }}"><i class="bi bi-pencil-fill me-1"></i>Edit</button>
-                                                        {% if item.customer.is_approved and item.customer.is_active %}
-                                                            <a href="{% url 'admin_revoke_customer' item.customer.id %}" class="btn btn-outline-danger action-btn-pill"><i class="bi bi-shield-x me-1"></i>Deactivate</a>
-                                                        {% else %}
-                                                            <a href="{% url 'admin_approve_customer' item.customer.id %}" class="btn btn-success action-btn-pill text-white border-0"><i class="bi bi-shield-check me-1"></i>Approve</a>
-                                                        {% endif %}
+                                                        <div class="d-flex gap-2 justify-content-end">
+                                                            <button class="btn btn-outline-gold action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#editCustomerCollapse{{ item.customer.id }}"><i class="bi bi-pencil-fill me-1"></i>Edit</button>
+                                                            <button class="btn btn-outline-danger action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#resetCustomerCollapse{{ item.customer.id }}"><i class="bi bi-key-fill me-1"></i>Reset</button>
+                                                            {% if item.customer.is_approved and item.customer.is_active %}
+                                                                <a href="{% url 'admin_revoke_customer' item.customer.id %}" class="btn btn-outline-danger action-btn-pill"><i class="bi bi-shield-x me-1"></i>Deactivate</a>
+                                                            {% else %}
+                                                                <a href="{% url 'admin_approve_customer' item.customer.id %}" class="btn btn-success action-btn-pill text-white border-0"><i class="bi bi-shield-check me-1"></i>Approve</a>
+                                                            {% endif %}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                                 <!-- Collapsible Edit Row -->
@@ -1131,6 +1194,31 @@
                                                                     <div class="d-flex justify-content-end gap-2">
                                                                         <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#editCustomerCollapse{{ item.customer.id }}">Cancel</button>
                                                                         <button type="submit" class="btn btn-gold btn-sm text-white">Save changes</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <!-- Collapsible Reset Password Row -->
+                                                <tr>
+                                                    <td colspan="4" class="p-0 border-0">
+                                                        <div class="collapse" id="resetCustomerCollapse{{ item.customer.id }}">
+                                                            <div class="card collapse-card p-4 my-2 mx-3" style="border-color: rgba(244, 63, 94, 0.3) !important;">
+                                                                <h6 class="fw-bold text-danger mb-3">Reset Password for Client: {{ item.customer.username }}</h6>
+                                                                <form method="POST">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="action" value="reset_password">
+                                                                    <input type="hidden" name="user_id" value="{{ item.customer.id }}">
+                                                                    
+                                                                    <div class="mb-3 text-start">
+                                                                        <label class="form-label text-white-50 small">New Password</label>
+                                                                        <input type="password" name="new_password" class="form-control" placeholder="Enter new custom password..." required>
+                                                                    </div>
+                                                                    
+                                                                    <div class="d-flex justify-content-end gap-2">
+                                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#resetCustomerCollapse{{ item.customer.id }}">Cancel</button>
+                                                                        <button type="submit" class="btn btn-danger btn-sm text-white border-0 px-3 bg-danger">Force Reset Password</button>
                                                                     </div>
                                                                 </form>
                                                             </div>

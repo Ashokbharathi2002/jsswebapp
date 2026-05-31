@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Count, Q
@@ -106,6 +106,30 @@ def dashboard_redirect(request):
         return redirect('customer_dashboard')
     else:
         return redirect('login')
+
+
+@login_required
+def change_password_view(request):
+    if request.method == 'POST':
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        confirm_new_password = request.POST.get('confirm_new_password')
+        
+        if not current_password or not new_password or not confirm_new_password:
+            messages.error(request, "All password fields are required.")
+        elif not request.user.check_password(current_password):
+            messages.error(request, "Your current password is incorrect.")
+        elif new_password != confirm_new_password:
+            messages.error(request, "The new passwords do not match.")
+        else:
+            request.user.set_password(new_password)
+            request.user.save()
+            update_session_auth_hash(request, request.user)
+            messages.success(request, "Your password has been successfully updated!")
+            
+        next_url = request.META.get('HTTP_REFERER', 'dashboard')
+        return redirect(next_url)
+    return redirect('dashboard')
 
 
 @login_required
@@ -550,6 +574,20 @@ def admin_dashboard(request):
             complaint.resolved_at = timezone.now()
             complaint.save()
             messages.success(request, f"Complaint by customer '{complaint.customer.username}' has been marked as resolved!")
+            return redirect('admin_dashboard')
+        elif action == 'reset_password':
+            user_id = request.POST.get('user_id')
+            user_instance = get_object_or_404(CustomUser, id=user_id)
+            if user_instance.role not in ['STAFF', 'EMPLOYEE', 'CUSTOMER']:
+                messages.error(request, "Permission Denied: Admins can only reset passwords for staff, employees, and customers.")
+            else:
+                new_password = request.POST.get('new_password')
+                if new_password:
+                    user_instance.set_password(new_password)
+                    user_instance.save()
+                    messages.success(request, f"Password for '{user_instance.username}' has been successfully reset!")
+                else:
+                    messages.error(request, "Password cannot be empty.")
             return redirect('admin_dashboard')
 
     pending_complaints = Complaint.objects.filter(status='PENDING').order_by('-created_at')
