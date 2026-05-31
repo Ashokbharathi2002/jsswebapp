@@ -4,7 +4,7 @@ services:
     env: python
     buildCommand: "bash ./build.sh"
     preDeployCommand: "python manage.py migrate"
-    startCommand: "gunicorn solar_installation.wsgi:application"
+    startCommand: "python manage.py migrate && gunicorn solar_installation.wsgi:application"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
