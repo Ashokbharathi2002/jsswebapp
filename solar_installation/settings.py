@@ -159,6 +159,8 @@ else:
         },
     }
 
+WHITENOISE_MANIFEST_STRICT = False
+
 # Custom Authentication Settings
 AUTH_USER_MODEL = 'core.CustomUser'
 LOGIN_URL = 'login'
