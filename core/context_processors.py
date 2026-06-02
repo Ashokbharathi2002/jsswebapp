@@ -1,4 +1,4 @@
-from .models import Note
+from .models import Note, Notice
 
 def user_notes(request):
     """
@@ -11,3 +11,12 @@ def user_notes(request):
     return {
         'user_notes': []
     }
+
+def active_notices(request):
+    """
+    Context processor to make active notices available globally in all templates.
+    """
+    return {
+        'active_notices': Notice.objects.filter(is_active=True).order_by('-created_at')
+    }
+

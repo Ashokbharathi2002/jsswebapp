@@ -9,7 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 from django.utils import timezone
 
-from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Note
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Note, Notice
 from .forms import (
     CustomerSignUpForm, 
     StaffCreationForm, 
@@ -1228,4 +1228,41 @@ def delete_note_view(request, note_id):
     
     next_url = request.META.get('HTTP_REFERER', 'dashboard')
     return redirect(next_url)
+
+
+@login_required
+def create_notice_view(request):
+    if request.user.role not in ['ADMIN', 'SUPERUSER'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Admins/Super Users Only")
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        
+        if title and content:
+            Notice.objects.create(
+                author=request.user,
+                title=title,
+                content=content
+            )
+            messages.success(request, "Announcement notice published successfully!")
+        else:
+            messages.error(request, "Failed to publish notice. Subject and content cannot be empty.")
+            
+    next_url = request.META.get('HTTP_REFERER', 'dashboard')
+    return redirect(next_url)
+
+
+@login_required
+def delete_notice_view(request, notice_id):
+    if request.user.role not in ['ADMIN', 'SUPERUSER'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Admins/Super Users Only")
+        
+    notice = get_object_or_404(Notice, id=notice_id)
+    notice.delete()
+    messages.success(request, "Notice deleted successfully!")
+    
+    next_url = request.META.get('HTTP_REFERER', 'dashboard')
+    return redirect(next_url)
+
 
