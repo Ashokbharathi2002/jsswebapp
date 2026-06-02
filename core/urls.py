@@ -27,4 +27,8 @@ urlpatterns = [
     path('admin/projects/export/', views.export_projects_csv, name='export_projects_csv'),
     path('admin/salaries/export/', views.export_salaries_csv, name='export_salaries_csv'),
     path('change-password/', views.change_password_view, name='change_password'),
+    path('notes/add/', views.add_note_view, name='add_note'),
+    path('notes/edit/<int:note_id>/', views.edit_note_view, name='edit_note'),
+    path('notes/delete/<int:note_id>/', views.delete_note_view, name='delete_note'),
 ]
+

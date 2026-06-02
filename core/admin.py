@@ -1,3 +1,33 @@
 from django.contrib import admin
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Note
 
-# Register your models here.
+@admin.register(CustomUser)
+class CustomUserAdmin(admin.ModelAdmin):
+    list_display = ('username', 'email', 'role', 'is_approved', 'employee_id')
+    list_filter = ('role', 'is_approved')
+    search_fields = ('username', 'email', 'employee_id')
+
+@admin.register(SolarInstallationProject)
+class SolarInstallationProjectAdmin(admin.ModelAdmin):
+    list_display = ('title', 'customer', 'staff_incharge', 'status', 'total_value')
+    list_filter = ('status',)
+    search_fields = ('title', 'customer__username', 'staff_incharge__username')
+
+@admin.register(Attendance)
+class AttendanceAdmin(admin.ModelAdmin):
+    list_display = ('user', 'date', 'status')
+    list_filter = ('status', 'date')
+    search_fields = ('user__username',)
+
+@admin.register(Complaint)
+class ComplaintAdmin(admin.ModelAdmin):
+    list_display = ('customer', 'subject', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('customer__username', 'subject')
+
+@admin.register(Note)
+class NoteAdmin(admin.ModelAdmin):
+    list_display = ('title', 'user', 'updated_at')
+    list_filter = ('updated_at',)
+    search_fields = ('title', 'user__username')
+

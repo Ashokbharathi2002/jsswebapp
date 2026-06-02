@@ -161,6 +161,25 @@
             font-size: 1.5rem;
             margin-right: 15px;
         }
+
+        /* Global Premium Tab Pills styling */
+        .nav-pills .nav-link {
+            color: var(--text-secondary);
+            font-weight: 600;
+            background-color: transparent !important;
+            border: 1.5px solid var(--accent-gold);
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+        .nav-pills .nav-link.active {
+            color: #050811 !important;
+            background-color: var(--accent-gold) !important;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .nav-pills .nav-link:hover:not(.active) {
+            color: var(--accent-gold) !important;
+            background-color: rgba(16, 185, 129, 0.05) !important;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
