@@ -47,29 +47,12 @@
                             </button>
                             <button class="btn btn-outline-danger btn-sm py-1 px-2 border-0" type="button"
                                     data-bs-toggle="modal"
-                                    data-bs-target="#deleteNoteModal-{{ note.id }}"
+                                    data-bs-target="#deleteNoteModal"
+                                    data-note-id="{{ note.id }}"
+                                    data-note-title="{{ note.title }}"
                                     title="Delete Note">
                                 <i class="bi bi-trash3-fill"></i>
                             </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Delete Note Confirmation Modal -->
-            <div class="modal fade" id="deleteNoteModal-{{ note.id }}" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered modal-sm">
-                    <div class="modal-content glass-card text-white" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
-                        <div class="modal-header border-bottom border-white-50 border-opacity-10 py-2">
-                            <h6 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Note</h6>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body text-start py-3">
-                            <p class="mb-0 small text-secondary">Are you sure you want to delete note <strong>"{{ note.title }}"</strong>? This action cannot be undone.</p>
-                        </div>
-                        <div class="modal-footer border-top border-white-50 border-opacity-10 py-2">
-                            <button type="button" class="btn btn-secondary btn-sm shadow-none" data-bs-dismiss="modal">Cancel</button>
-                            <a href="{% url 'delete_note' note.id %}" class="btn btn-danger btn-sm px-3 border-0 bg-danger text-white">Delete</a>
                         </div>
                     </div>
                 </div>
@@ -96,68 +79,9 @@
     </div>
 </div>
 
-<!-- Add Note Modal -->
-<div class="modal fade" id="addNoteModal" tabindex="-1" aria-labelledby="addNoteModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card text-white" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
-            <div class="modal-header border-bottom border-white-50 border-opacity-10">
-                <h5 class="modal-title fw-bold" id="addNoteModalLabel"><i class="bi bi-journal-plus text-gradient-gold me-2"></i>Create New Note</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{% url 'add_note' %}" method="POST">
-                {% csrf_token %}
-                <div class="modal-body text-start">
-                    <div class="mb-3">
-                        <label for="addNoteTitle" class="form-label small text-white-50">Note Title</label>
-                        <input type="text" name="title" id="addNoteTitle" class="form-control bg-black text-white" placeholder="Enter title (e.g. Site Survey Tasks)..." required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="addNoteContent" class="form-label small text-white-50">Content</label>
-                        <textarea name="content" id="addNoteContent" class="form-control bg-black text-white" rows="6" placeholder="Write your note here..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer border-top border-white-50 border-opacity-10">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-gold btn-sm text-white px-4">Create Note</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Note Modal -->
-<div class="modal fade" id="editNoteModal" tabindex="-1" aria-labelledby="editNoteModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content glass-card text-white" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
-            <div class="modal-header border-bottom border-white-50 border-opacity-10">
-                <h5 class="modal-title fw-bold" id="editNoteModalLabel"><i class="bi bi-pencil-square text-gradient-gold me-2"></i>Edit Note</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="editNoteForm" method="POST">
-                {% csrf_token %}
-                <div class="modal-body text-start">
-                    <div class="mb-3">
-                        <label for="editNoteTitle" class="form-label small text-white-50">Note Title</label>
-                        <input type="text" name="title" id="editNoteTitle" class="form-control bg-black text-white" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editNoteContent" class="form-label small text-white-50">Content</label>
-                        <textarea name="content" id="editNoteContent" class="form-control bg-black text-white" rows="6"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer border-top border-white-50 border-opacity-10">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-gold btn-sm text-white px-4">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Notes Client Scripts (for instant client-side searching and editing setup) -->
+<!-- Search filter script -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // 1. Search filter functionality
         const searchInput = document.getElementById("noteSearchInput");
         if (searchInput) {
             searchInput.addEventListener("input", function (e) {
@@ -186,27 +110,6 @@
                     if (filteredNoNotesPlaceholder) filteredNoNotesPlaceholder.classList.add("d-none");
                     if (noNotesPlaceholder && query === "") noNotesPlaceholder.classList.remove("d-none");
                 }
-            });
-        }
-
-        // 2. Prepopulate edit note modal dynamic URL and form inputs
-        const editNoteModal = document.getElementById("editNoteModal");
-        if (editNoteModal) {
-            editNoteModal.addEventListener("show.bs.modal", function (event) {
-                const button = event.relatedTarget;
-                const noteId = button.getAttribute("data-note-id");
-                const noteTitle = button.getAttribute("data-note-title");
-                const noteContent = button.getAttribute("data-note-content");
-                
-                const form = editNoteModal.querySelector("#editNoteForm");
-                const titleInput = editNoteModal.querySelector("#editNoteTitle");
-                const contentInput = editNoteModal.querySelector("#editNoteContent");
-                
-                // Set form action dynamically
-                form.action = `/notes/edit/${noteId}/`;
-                // Set current values
-                titleInput.value = noteTitle;
-                contentInput.value = noteContent;
             });
         }
     });

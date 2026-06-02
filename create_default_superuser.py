@@ -16,9 +16,9 @@ def create_superuser_safely():
             password="solar123",
             role="SUPERUSER",
             is_approved=True,
-            first_name="Root",
-            last_name="Admin",
-            bio="Root System Administrator.",
+            first_name="super",
+            last_name="user",
+            bio="Super User.",
             phone_number="+919999999999",
             whatsapp_number="919999999999"
         )
