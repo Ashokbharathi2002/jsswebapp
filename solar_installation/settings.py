@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Try importing production packages (falls back gracefully for local development)
 try:
     import dj_database_url
@@ -27,6 +29,10 @@ except ImportError:
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / '.env')
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -101,6 +107,20 @@ DATABASES = {
 
 if dj_database_url and os.environ.get('DATABASE_URL'):
     DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
+    if DATABASES['default'].get('ENGINE') == 'django.db.backends.mysql':
+        # mysqlclient expects ssl_mode in OPTIONS, while dj_database_url
+        # might set ssl-mode (from query params) or sslmode (from ssl_require=True).
+        options = DATABASES['default'].setdefault('OPTIONS', {})
+        ssl_mode_param = options.pop('ssl-mode', None)
+        sslmode_param = options.pop('sslmode', None)
+        ssl_mode = ssl_mode_param or sslmode_param
+        if ssl_mode:
+            if ssl_mode.lower() in ('require', 'required'):
+                options['ssl_mode'] = 'REQUIRED'
+            else:
+                options['ssl_mode'] = ssl_mode.upper()
+
+
 
 
 # Password validation
