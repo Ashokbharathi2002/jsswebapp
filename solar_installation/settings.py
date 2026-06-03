@@ -11,6 +11,11 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -118,10 +123,15 @@ if dj_database_url and os.environ.get('DATABASE_URL'):
         sslmode_param = options.pop('sslmode', None)
         ssl_mode = ssl_mode_param or sslmode_param
         if ssl_mode:
-            if ssl_mode.lower() in ('require', 'required'):
-                options['ssl_mode'] = 'REQUIRED'
+            import sys
+            is_pymysql = 'pymysql' in sys.modules
+            if is_pymysql:
+                options['ssl'] = {'ssl_mode': 'REQUIRED'} if ssl_mode.lower() in ('require', 'required') else {'ssl_mode': ssl_mode.upper()}
             else:
-                options['ssl_mode'] = ssl_mode.upper()
+                if ssl_mode.lower() in ('require', 'required'):
+                    options['ssl_mode'] = 'REQUIRED'
+                else:
+                    options['ssl_mode'] = ssl_mode.upper()
 
 
 
