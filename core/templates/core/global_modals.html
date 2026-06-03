@@ -124,6 +124,197 @@
         </div>
     </div>
 </div>
+
+<!-- Add Quotation Modal -->
+<div class="modal fade" id="addQuotationModal" tabindex="-1" aria-labelledby="addQuotationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-card text-white" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
+            <div class="modal-header border-bottom border-white-50 border-opacity-10">
+                <h5 class="modal-title fw-bold" id="addQuotationModalLabel"><i class="bi bi-file-earmark-plus text-gradient-gold me-2"></i>Generate Solar Quotation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'add_quotation' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body text-start">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="addQuoteCustomer" class="form-label small text-white-50">Link Registered Customer</label>
+                            <select name="customer" id="addQuoteCustomer" class="form-select bg-black text-white border-secondary-subtle">
+                                <option value="">-- Unregistered Lead --</option>
+                                {% for cust in customer_data_list %}
+                                    <option value="{{ cust.customer.id }}">{{ cust.customer.get_full_name }} (@{{ cust.customer.username }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="addQuoteLeadName" class="form-label small text-white-50">Lead Client Name (If not registered)</label>
+                            <input type="text" name="lead_name" id="addQuoteLeadName" class="form-control bg-black text-white" placeholder="Enter full name...">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="addQuoteLeadEmail" class="form-label small text-white-50">Lead Email</label>
+                            <input type="email" name="lead_email" id="addQuoteLeadEmail" class="form-control bg-black text-white" placeholder="email@address.com...">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="addQuoteLeadPhone" class="form-label small text-white-50">Lead Phone</label>
+                            <input type="text" name="lead_phone" id="addQuoteLeadPhone" class="form-control bg-black text-white" placeholder="Phone contact...">
+                        </div>
+
+                        <div class="col-md-8">
+                            <label for="addQuoteTitle" class="form-label small text-white-50">Proposal Title / Subject</label>
+                            <input type="text" name="title" id="addQuoteTitle" class="form-control bg-black text-white" placeholder="e.g. 5kW Residential Solar Array" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="addQuoteCapacity" class="form-label small text-white-50">System Size (kW)</label>
+                            <input type="number" name="solar_capacity_kw" id="addQuoteCapacity" class="form-control bg-black text-white" step="0.01" value="5.00" required>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="addQuoteBreakdown" class="form-label small text-white-50">Materials Breakdown (One item per line)</label>
+                            <textarea name="material_breakdown" id="addQuoteBreakdown" class="form-control bg-black text-white" rows="4" placeholder="e.g. 10x 450W Mono PV Panels&#10;1x 5kW Hybrid Smart Inverter&#10;Premium Aluminum Rooftop Mounts..."></textarea>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="addQuoteMatCost" class="form-label small text-white-50">Material Cost (₹)</label>
+                            <input type="number" name="material_cost" id="addQuoteMatCost" class="form-control bg-black text-white" step="0.01" value="0.00" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="addQuoteLaborCost" class="form-label small text-white-50">Labor Cost (₹)</label>
+                            <input type="number" name="labor_cost" id="addQuoteLaborCost" class="form-control bg-black text-white" step="0.01" value="0.00" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="addQuoteTaxCost" class="form-label small text-white-50">Taxes/Fees (₹)</label>
+                            <input type="number" name="tax_cost" id="addQuoteTaxCost" class="form-control bg-black text-white" step="0.01" value="0.00" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="addQuoteTotalPrice" class="form-label small text-white-50">Net Price (Optional, ₹)</label>
+                            <input type="number" name="total_price" id="addQuoteTotalPrice" class="form-control bg-black text-white" step="0.01" value="0.00" placeholder="Auto-calculated if 0">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="addQuoteStatus" class="form-label small text-white-50">Status</label>
+                            <select name="status" id="addQuoteStatus" class="form-select bg-black text-white border-secondary-subtle" required>
+                                <option value="DRAFT">Draft (Internal)</option>
+                                <option value="SENT">Sent to Client</option>
+                                <option value="ACCEPTED">Accepted</option>
+                                <option value="REJECTED">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-white-50 border-opacity-10">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-gold btn-sm text-white px-4">Generate Proposal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Quotation Modal -->
+<div class="modal fade" id="editQuotationModal" tabindex="-1" aria-labelledby="editQuotationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content glass-card text-white" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
+            <div class="modal-header border-bottom border-white-50 border-opacity-10">
+                <h5 class="modal-title fw-bold" id="editQuotationModalLabel"><i class="bi bi-pencil-square text-gradient-gold me-2"></i>Modify Proposal</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editQuotationForm" method="POST">
+                {% csrf_token %}
+                <div class="modal-body text-start">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="editQuoteCustomer" class="form-label small text-white-50">Link Registered Customer</label>
+                            <select name="customer" id="editQuoteCustomer" class="form-select bg-black text-white border-secondary-subtle">
+                                <option value="">-- Unregistered Lead --</option>
+                                {% for cust in customer_data_list %}
+                                    <option value="{{ cust.customer.id }}">{{ cust.customer.get_full_name }} (@{{ cust.customer.username }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editQuoteLeadName" class="form-label small text-white-50">Lead Client Name (If not registered)</label>
+                            <input type="text" name="lead_name" id="editQuoteLeadName" class="form-control bg-black text-white">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="editQuoteLeadEmail" class="form-label small text-white-50">Lead Email</label>
+                            <input type="email" name="lead_email" id="editQuoteLeadEmail" class="form-control bg-black text-white">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editQuoteLeadPhone" class="form-label small text-white-50">Lead Phone</label>
+                            <input type="text" name="lead_phone" id="editQuoteLeadPhone" class="form-control bg-black text-white">
+                        </div>
+
+                        <div class="col-md-8">
+                            <label for="editQuoteTitle" class="form-label small text-white-50">Proposal Title / Subject</label>
+                            <input type="text" name="title" id="editQuoteTitle" class="form-control bg-black text-white" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editQuoteCapacity" class="form-label small text-white-50">System Size (kW)</label>
+                            <input type="number" name="solar_capacity_kw" id="editQuoteCapacity" class="form-control bg-black text-white" step="0.01" required>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="editQuoteBreakdown" class="form-label small text-white-50">Materials Breakdown (One item per line)</label>
+                            <textarea name="material_breakdown" id="editQuoteBreakdown" class="form-control bg-black text-white" rows="4"></textarea>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="editQuoteMatCost" class="form-label small text-white-50">Material Cost (₹)</label>
+                            <input type="number" name="material_cost" id="editQuoteMatCost" class="form-control bg-black text-white" step="0.01" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="editQuoteLaborCost" class="form-label small text-white-50">Labor Cost (₹)</label>
+                            <input type="number" name="labor_cost" id="editQuoteLaborCost" class="form-control bg-black text-white" step="0.01" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="editQuoteTaxCost" class="form-label small text-white-50">Taxes/Fees (₹)</label>
+                            <input type="number" name="tax_cost" id="editQuoteTaxCost" class="form-control bg-black text-white" step="0.01" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="editQuoteTotalPrice" class="form-label small text-white-50">Net Price (Optional, ₹)</label>
+                            <input type="number" name="total_price" id="editQuoteTotalPrice" class="form-control bg-black text-white" step="0.01" placeholder="Auto-calculated if 0">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="editQuoteStatus" class="form-label small text-white-50">Status</label>
+                            <select name="status" id="editQuoteStatus" class="form-select bg-black text-white border-secondary-subtle" required>
+                                <option value="DRAFT">Draft (Internal)</option>
+                                <option value="SENT">Sent to Client</option>
+                                <option value="ACCEPTED">Accepted</option>
+                                <option value="REJECTED">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-white-50 border-opacity-10">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-gold btn-sm text-white px-4">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Quotation Modal -->
+<div class="modal fade" id="deleteQuotationModal" tabindex="-1" aria-labelledby="deleteQuotationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content glass-card text-white" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
+            <div class="modal-header border-bottom border-white-50 border-opacity-10 py-2">
+                <h6 class="modal-title fw-bold text-danger" id="deleteQuotationModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Proposal</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-start py-3">
+                <p class="mb-0 small text-secondary">Are you sure you want to permanently delete quotation <strong id="deleteQuoteTitleText"></strong>? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-top border-white-50 border-opacity-10 py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <a id="deleteQuoteConfirmBtn" href="" class="btn btn-danger btn-sm px-3 border-0 bg-danger text-white">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endif %}
 
 <!-- Dynamic Modals Populator JavaScript -->
@@ -134,6 +325,7 @@
         if (editNoteModal) {
             editNoteModal.addEventListener("show.bs.modal", function (event) {
                 const button = event.relatedTarget;
+                if (!button) return;
                 const noteId = button.getAttribute("data-note-id");
                 const noteTitle = button.getAttribute("data-note-title");
                 const noteContent = button.getAttribute("data-note-content");
@@ -153,6 +345,7 @@
         if (deleteNoteModal) {
             deleteNoteModal.addEventListener("show.bs.modal", function (event) {
                 const button = event.relatedTarget;
+                if (!button) return;
                 const noteId = button.getAttribute("data-note-id");
                 const noteTitle = button.getAttribute("data-note-title");
                 
@@ -169,10 +362,67 @@
         if (deleteNoticeModal) {
             deleteNoticeModal.addEventListener("show.bs.modal", function (event) {
                 const button = event.relatedTarget;
+                if (!button) return;
                 const noticeId = button.getAttribute("data-note-id");
                 const confirmBtn = deleteNoticeModal.querySelector("#deleteNoticeConfirmBtn");
                 
                 confirmBtn.href = `/notices/delete/${noticeId}/`;
+            });
+        }
+        // 4. Edit Quotation modal population
+        const editQuotationModal = document.getElementById("editQuotationModal");
+        if (editQuotationModal) {
+            editQuotationModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+                
+                const quoteId = button.getAttribute("data-quote-id");
+                const customer = button.getAttribute("data-quote-customer");
+                const leadName = button.getAttribute("data-quote-lead-name");
+                const leadEmail = button.getAttribute("data-quote-lead-email");
+                const leadPhone = button.getAttribute("data-quote-lead-phone");
+                const title = button.getAttribute("data-quote-title");
+                const capacity = button.getAttribute("data-quote-capacity");
+                const breakdown = button.getAttribute("data-quote-breakdown");
+                const matCost = button.getAttribute("data-quote-material-cost");
+                const laborCost = button.getAttribute("data-quote-labor-cost");
+                const taxCost = button.getAttribute("data-quote-tax-cost");
+                const total = button.getAttribute("data-quote-total-price");
+                const status = button.getAttribute("data-quote-status");
+                
+                const form = editQuotationModal.querySelector("#editQuotationForm");
+                form.action = `/quotations/edit/${quoteId}/`;
+                
+                editQuotationModal.querySelector("#editQuoteCustomer").value = customer;
+                editQuotationModal.querySelector("#editQuoteLeadName").value = leadName;
+                editQuotationModal.querySelector("#editQuoteLeadEmail").value = leadEmail;
+                editQuotationModal.querySelector("#editQuoteLeadPhone").value = leadPhone;
+                editQuotationModal.querySelector("#editQuoteTitle").value = title;
+                editQuotationModal.querySelector("#editQuoteCapacity").value = capacity;
+                editQuotationModal.querySelector("#editQuoteBreakdown").value = breakdown;
+                editQuotationModal.querySelector("#editQuoteMatCost").value = matCost;
+                editQuotationModal.querySelector("#editQuoteLaborCost").value = laborCost;
+                editQuotationModal.querySelector("#editQuoteTaxCost").value = taxCost;
+                editQuotationModal.querySelector("#editQuoteTotalPrice").value = total;
+                editQuotationModal.querySelector("#editQuoteStatus").value = status;
+            });
+        }
+
+        // 5. Delete Quotation modal population
+        const deleteQuotationModal = document.getElementById("deleteQuotationModal");
+        if (deleteQuotationModal) {
+            deleteQuotationModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+                
+                const quoteId = button.getAttribute("data-quote-id");
+                const title = button.getAttribute("data-quote-title");
+                
+                const confirmBtn = deleteQuotationModal.querySelector("#deleteQuoteConfirmBtn");
+                const titleText = deleteQuotationModal.querySelector("#deleteQuoteTitleText");
+                
+                confirmBtn.href = `/quotations/delete/${quoteId}/`;
+                titleText.textContent = `"${title}"`;
             });
         }
     });

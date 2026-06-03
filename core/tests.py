@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from decimal import Decimal
 from core.models import SolarInstallationProject, Attendance, Complaint
 
 User = get_user_model()
@@ -485,4 +486,229 @@ class SuperUserDashboardTests(TestCase):
         self.client.logout()
         login_success = self.client.login(username="teststaff", password="newstaffpassword123")
         self.assertTrue(login_success)
+
+
+class PersonalNotesAndNoticeTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        # Get active user model
+        self.user = User.objects.create_user(
+            username="regularuser",
+            email="regularuser@test.com",
+            password="userpassword",
+            role="CUSTOMER",
+            is_approved=True
+        )
+        self.admin = User.objects.create_user(
+            username="adminuser",
+            email="adminuser@test.com",
+            password="adminpassword",
+            role="ADMIN",
+            is_approved=True
+        )
+
+    def test_add_personal_note(self):
+        """Verify that a logged in user can create a personal note."""
+        self.client.login(username="regularuser", password="userpassword")
+        response = self.client.post(reverse('add_note'), {
+            'title': 'Test Personal Note Title',
+            'content': 'This is the test content of the personal note.'
+        })
+        self.assertEqual(response.status_code, 302)
+        from core.models import Note
+        note = Note.objects.filter(user=self.user).first()
+        self.assertIsNotNone(note)
+        self.assertEqual(note.title, 'Test Personal Note Title')
+        self.assertEqual(note.content, 'This is the test content of the personal note.')
+
+    def test_edit_personal_note(self):
+        """Verify that a user can edit their own personal note."""
+        from core.models import Note
+        note = Note.objects.create(user=self.user, title='Old Title', content='Old content')
+        self.client.login(username="regularuser", password="userpassword")
+        response = self.client.post(reverse('edit_note', args=[note.id]), {
+            'title': 'New Title',
+            'content': 'New content'
+        })
+        self.assertEqual(response.status_code, 302)
+        note.refresh_from_db()
+        self.assertEqual(note.title, 'New Title')
+        self.assertEqual(note.content, 'New content')
+
+    def test_delete_personal_note(self):
+        """Verify that a user can delete their own personal note."""
+        from core.models import Note
+        note = Note.objects.create(user=self.user, title='To Delete', content='content')
+        self.client.login(username="regularuser", password="userpassword")
+        response = self.client.post(reverse('delete_note', args=[note.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Note.objects.filter(id=note.id).exists())
+
+    def test_create_and_delete_notice_by_admin(self):
+        """Verify noticeboard announcements can be created and deleted by admins."""
+        self.client.login(username="adminuser", password="adminpassword")
+        response = self.client.post(reverse('create_notice'), {
+            'title': 'System Maintenance Announcement',
+            'content': 'There will be a maintenance window tonight.'
+        })
+        self.assertEqual(response.status_code, 302)
+        from core.models import Notice
+        notice = Notice.objects.filter(author=self.admin).first()
+        self.assertIsNotNone(notice)
+        self.assertEqual(notice.title, 'System Maintenance Announcement')
+
+        # Test delete notice
+        delete_response = self.client.get(reverse('delete_notice', args=[notice.id]))
+        self.assertEqual(delete_response.status_code, 302)
+        self.assertFalse(Notice.objects.filter(id=notice.id).exists())
+
+    def test_create_notice_forbidden_for_regular_user(self):
+        """Verify that regular users cannot publish noticeboard announcements."""
+        self.client.login(username="regularuser", password="userpassword")
+        response = self.client.post(reverse('create_notice'), {
+            'title': 'Hack attempt',
+            'content': 'Should fail'
+        })
+        self.assertEqual(response.status_code, 403)
+
+
+class QuotationTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_user(
+            username="adminuser",
+            email="admin@test.com",
+            password="adminpassword",
+            role="ADMIN",
+            is_approved=True
+        )
+        self.customer_one = User.objects.create_user(
+            username="customer1",
+            email="cust1@test.com",
+            password="custpassword",
+            role="CUSTOMER",
+            is_approved=True
+        )
+        self.customer_two = User.objects.create_user(
+            username="customer2",
+            email="cust2@test.com",
+            password="custpassword",
+            role="CUSTOMER",
+            is_approved=True
+        )
+        self.staff = User.objects.create_user(
+            username="staffuser",
+            email="staff@test.com",
+            password="staffpassword",
+            role="STAFF",
+            is_approved=True
+        )
+
+    def test_admin_generate_quotation_and_auto_total_calculation(self):
+        """Verify that an admin can create a quotation, and the total price defaults to the sum of costs."""
+        self.client.login(username="adminuser", password="adminpassword")
+        response = self.client.post(reverse('add_quotation'), {
+            'customer': self.customer_one.id,
+            'title': '3kW Smart Solar Array',
+            'solar_capacity_kw': '3.20',
+            'material_breakdown': '8x 400W Panels\nInverter',
+            'material_cost': '100000.00',
+            'labor_cost': '20000.00',
+            'tax_cost': '5000.00',
+            'total_price': '0.00',  # Let it auto-calculate
+            'status': 'DRAFT'
+        })
+        self.assertEqual(response.status_code, 302)
+        from core.models import Quotation
+        quote = Quotation.objects.filter(customer=self.customer_one).first()
+        self.assertIsNotNone(quote)
+        self.assertEqual(quote.title, '3kW Smart Solar Array')
+        # Check auto calculation of total price
+        self.assertEqual(quote.total_price, Decimal('125000.00'))
+
+    def test_add_quotation_requires_customer_or_lead_name(self):
+        """Verify form validation errors if both registered customer and lead name are empty."""
+        self.client.login(username="adminuser", password="adminpassword")
+        # Submit empty customer and empty lead name
+        response = self.client.post(reverse('add_quotation'), {
+            'title': 'Invalid Proposal',
+            'solar_capacity_kw': '5.00',
+            'material_cost': '0.00',
+            'labor_cost': '0.00',
+            'tax_cost': '0.00',
+            'status': 'DRAFT'
+        })
+        self.assertEqual(response.status_code, 302)
+        # Verify no Quotation was created
+        from core.models import Quotation
+        self.assertEqual(Quotation.objects.count(), 0)
+
+    def test_client_cannot_access_quotation_actions(self):
+        """Verify that clients/customers cannot create, edit, or delete quotations."""
+        self.client.login(username="customer1", password="custpassword")
+        
+        # Test add
+        add_resp = self.client.post(reverse('add_quotation'), {'title': 'Hack'})
+        self.assertEqual(add_resp.status_code, 403)
+        
+        # Create a mock quote to test edit/delete
+        from core.models import Quotation
+        quote = Quotation.objects.create(
+            created_by=self.admin,
+            customer=self.customer_one,
+            title="Safe Quote",
+            solar_capacity_kw=5.00,
+            material_cost=100.00,
+            status="DRAFT"
+        )
+        
+        # Test edit
+        edit_resp = self.client.post(reverse('edit_quotation', args=[quote.id]), {'title': 'Hacked Title'})
+        self.assertEqual(edit_resp.status_code, 403)
+        
+        # Test delete
+        delete_resp = self.client.post(reverse('delete_quotation', args=[quote.id]))
+        self.assertEqual(delete_resp.status_code, 403)
+
+    def test_client_quotation_visibility_restrictions(self):
+        """Verify that customers can only view their own non-draft quotations."""
+        from core.models import Quotation
+        # 1. Draft quote for customer_one (Customer 1 should NOT be able to view)
+        draft_quote = Quotation.objects.create(
+            created_by=self.admin,
+            customer=self.customer_one,
+            title="Draft Proposal",
+            status="DRAFT"
+        )
+        # 2. Sent quote for customer_one (Customer 1 SHOULD be able to view)
+        sent_quote = Quotation.objects.create(
+            created_by=self.admin,
+            customer=self.customer_one,
+            title="Finalized Proposal",
+            status="SENT"
+        )
+        # 3. Sent quote for customer_two (Customer 1 should NOT be able to view)
+        other_quote = Quotation.objects.create(
+            created_by=self.admin,
+            customer=self.customer_two,
+            title="Other Client Proposal",
+            status="SENT"
+        )
+
+        # Login as Customer 1
+        self.client.login(username="customer1", password="custpassword")
+        
+        # Cannot view draft
+        draft_resp = self.client.get(reverse('view_quotation_proposal', args=[draft_quote.id]))
+        self.assertEqual(draft_resp.status_code, 403)
+        
+        # Can view sent
+        sent_resp = self.client.get(reverse('view_quotation_proposal', args=[sent_quote.id]))
+        self.assertEqual(sent_resp.status_code, 200)
+        self.assertContains(sent_resp, "Finalized Proposal")
+        
+        # Cannot view other customer's quote
+        other_resp = self.client.get(reverse('view_quotation_proposal', args=[other_quote.id]))
+        self.assertEqual(other_resp.status_code, 403)
+
 

@@ -1,5 +1,5 @@
 from django import forms
-from .models import CustomUser, SolarInstallationProject, Complaint
+from .models import CustomUser, SolarInstallationProject, Complaint, Quotation
 
 class CustomerSignUpForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
@@ -260,3 +260,40 @@ class ComplaintForm(forms.ModelForm):
             'subject': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter the subject/title of the issue...'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Describe your issue in detail here...'}),
         }
+
+
+class QuotationForm(forms.ModelForm):
+    class Meta:
+        model = Quotation
+        fields = [
+            'customer', 'lead_name', 'lead_email', 'lead_phone',
+            'title', 'solar_capacity_kw', 'material_breakdown',
+            'material_cost', 'labor_cost', 'tax_cost', 'total_price', 'status'
+        ]
+        widgets = {
+            'customer': forms.Select(attrs={'class': 'form-select'}),
+            'lead_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional - For unregistered leads'}),
+            'lead_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Optional - lead email'}),
+            'lead_phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional - lead phone'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 5kW Solar Array Installation'}),
+            'solar_capacity_kw': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'material_breakdown': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'e.g. 12x 450W Mono panels, 5kW Grid-tie Inverter...'}),
+            'material_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'labor_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tax_cost': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'total_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Leave blank to auto-calculate sum'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['customer'].queryset = CustomUser.objects.filter(role='CUSTOMER')
+        self.fields['total_price'].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        customer = cleaned_data.get('customer')
+        lead_name = cleaned_data.get('lead_name')
+        if not customer and not lead_name:
+            raise forms.ValidationError("Please select a registered customer OR enter a lead name for unregistered clients.")
+        return cleaned_data

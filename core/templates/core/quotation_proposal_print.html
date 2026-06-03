@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposal - {{ quotation.title }}</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS (needed for structure) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 40px 0;
+        }
+
+        .proposal-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 50px;
+        }
+
+        .header-logo {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0284c7;
+        }
+
+        .gold-accent {
+            color: #d97706;
+        }
+
+        .table-custom th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .total-row {
+            background-color: #f8fafc;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .signature-line {
+            border-top: 1px solid #cbd5e1;
+            margin-top: 60px;
+            padding-top: 10px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* Print Media Styles */
+        @media print {
+            body {
+                background-color: #ffffff;
+                color: #000000;
+                padding: 0;
+            }
+            .proposal-card {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Print / Close Sticky Floating Bar -->
+    <div class="container text-center mb-4 no-print">
+        <button onclick="window.print()" class="btn btn-primary px-4 py-2 me-2">
+            <i class="bi bi-printer-fill me-1"></i> Print Proposal
+        </button>
+        <button onclick="window.close()" class="btn btn-outline-secondary px-4 py-2">
+            Close Window
+        </button>
+    </div>
+
+    <!-- Main Proposal Document -->
+    <div class="proposal-card">
+        <!-- Header -->
+        <div class="row align-items-center mb-5">
+            <div class="col-sm-6">
+                <div class="header-logo d-flex align-items-center">
+                    <i class="bi bi-sun-fill gold-accent me-2 fs-2"></i>
+                    <span>JOTHI <span class="text-dark">SOLAR</span></span>
+                </div>
+                <p class="text-muted small mb-0 mt-1">Premium Clean Energy Solutions & Installations</p>
+            </div>
+            <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                <h3 class="fw-bold text-uppercase mb-1" style="letter-spacing: -0.02em; color: #0f172a;">Solar Proposal</h3>
+                <div class="text-muted small">Reference: <strong>JS-QUOTE-{{ quotation.id|stringformat:"05d" }}</strong></div>
+                <div class="text-muted small">Date: {{ quotation.created_at|date:"M d, Y" }}</div>
+            </div>
+        </div>
+
+        <hr class="my-4" style="border-color: #e2e8f0;">
+
+        <!-- Client & Project Details -->
+        <div class="row mb-5">
+            <div class="col-sm-6">
+                <span class="text-uppercase text-muted fw-bold d-block mb-2" style="font-size: 11px; letter-spacing: 0.05em;">Prepared For</span>
+                {% if quotation.customer %}
+                    <h5 class="fw-bold mb-1">{{ quotation.customer.get_full_name }}</h5>
+                    <p class="text-muted mb-0">{{ quotation.customer.email }}</p>
+                    <p class="text-muted mb-0">{{ quotation.customer.phone_number|default:"" }}</p>
+                {% else %}
+                    <h5 class="fw-bold mb-1">{{ quotation.lead_name }}</h5>
+                    {% if quotation.lead_email %}<p class="text-muted mb-0">{{ quotation.lead_email }}</p>{% endif %}
+                    {% if quotation.lead_phone %}<p class="text-muted mb-0">{{ quotation.lead_phone }}</p>{% endif %}
+                {% endif %}
+            </div>
+            <div class="col-sm-6 text-sm-end mt-4 mt-sm-0">
+                <span class="text-uppercase text-muted fw-bold d-block mb-2" style="font-size: 11px; letter-spacing: 0.05em;">System Summary</span>
+                <h5 class="fw-bold mb-1 text-primary">{{ quotation.title }}</h5>
+                <p class="text-muted mb-0">System Capacity: <strong>{{ quotation.solar_capacity_kw }} kW</strong></p>
+                <p class="text-muted mb-0">Status: 
+                    {% if quotation.status == 'DRAFT' %}<strong>Draft (Internal)</strong>
+                    {% elif quotation.status == 'SENT' %}<strong>Shared Proposal</strong>
+                    {% elif quotation.status == 'ACCEPTED' %}<strong>Accepted by Client</strong>
+                    {% elif quotation.status == 'REJECTED' %}<strong>Declined</strong>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Materials Breakdown -->
+        <h6 class="fw-bold text-uppercase mb-3" style="color: #0f172a; font-size: 12px; letter-spacing: 0.05em;">Materials & Design Scope</h6>
+        <div class="card p-4 mb-5" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+            {% if material_items %}
+                <ul class="mb-0 ps-3" style="font-size: 13.5px; color: #334155;">
+                    {% for item in material_items %}
+                        <li class="mb-2">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted mb-0 small">Scope details include premium PV solar panels, high-efficiency hybrid inverters, mounting structures, ACDB/DCDB protection boxes, earthing kits, and full installation service.</p>
+            {% endif %}
+        </div>
+
+        <!-- Cost Breakdown Table -->
+        <h6 class="fw-bold text-uppercase mb-3" style="color: #0f172a; font-size: 12px; letter-spacing: 0.05em;">Investment Details</h6>
+        <div class="table-responsive mb-5">
+            <table class="table table-bordered table-custom align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 70%;">Cost Center Description</th>
+                        <th class="text-end" style="width: 30%;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Solar Panels, Inverters, Structures, and Cable Materials</td>
+                        <td class="text-end">₹{{ quotation.material_cost|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td>Installation, Wiring labor, and Commissioning service</td>
+                        <td class="text-end">₹{{ quotation.labor_cost|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <td>Taxes and Connection Liasoning fees</td>
+                        <td class="text-end">₹{{ quotation.tax_cost|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td class="text-end">Net Total Investment (INR)</td>
+                        <td class="text-end text-primary">₹{{ quotation.total_price|floatformat:2 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Terms & Signatures -->
+        <div class="row mt-5 pt-4">
+            <div class="col-sm-7 pe-4">
+                <span class="fw-bold d-block mb-2" style="font-size: 12px; text-transform: uppercase; color: #475569;">Proposal Terms & Conditions</span>
+                <ol class="small text-muted ps-3" style="font-size: 11px; line-height: 1.6;">
+                    <li class="mb-1">This proposal is valid for 15 days from the date of issue.</li>
+                    <li class="mb-1">Net-metering permissions are subject to utility board rules and processing times.</li>
+                    <li class="mb-1">Warranty: Solar panels feature 25 years performance warranty; Inverter warranty is 5 years.</li>
+                    <li class="mb-1">Payment Schedule: 40% advance, 50% on material delivery, 10% post-commissioning.</li>
+                </ol>
+            </div>
+            <div class="col-sm-5 mt-4 mt-sm-0">
+                <div class="row">
+                    <div class="col-6 text-center">
+                        <div class="signature-line">
+                            <br><br>
+                            <strong>Jothi Solar Solutions</strong><br>
+                            Authorized Signatory
+                        </div>
+                    </div>
+                    <div class="col-6 text-center">
+                        <div class="signature-line">
+                            <br><br>
+                            <strong>Customer Approval</strong><br>
+                            Signature & Date
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

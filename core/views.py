@@ -9,7 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 from django.utils import timezone
 
-from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Note, Notice
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Note, Notice, Quotation
 from .forms import (
     CustomerSignUpForm, 
     StaffCreationForm, 
@@ -22,7 +22,8 @@ from .forms import (
     ClientEditForm,
     EmployeeCreationForm,
     EmployeeEditForm,
-    ComplaintForm
+    ComplaintForm,
+    QuotationForm
 )
 
 def login_view(request):
@@ -1264,5 +1265,77 @@ def delete_notice_view(request, notice_id):
     
     next_url = request.META.get('HTTP_REFERER', 'dashboard')
     return redirect(next_url)
+
+
+@login_required
+def add_quotation_view(request):
+    if request.user.role not in ['ADMIN', 'SUPERUSER'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Admins/Super Users Only")
+        
+    if request.method == 'POST':
+        form = QuotationForm(request.POST)
+        if form.is_valid():
+            quotation = form.save(commit=False)
+            quotation.created_by = request.user
+            quotation.save()
+            messages.success(request, "Solar quotation generated successfully!")
+        else:
+            errors_str = " ".join([f"{k}: {v[0]}" for k, v in form.errors.items()])
+            messages.error(request, f"Failed to generate quotation: {errors_str}")
+            
+    next_url = request.META.get('HTTP_REFERER', 'dashboard')
+    return redirect(next_url)
+
+
+@login_required
+def edit_quotation_view(request, quote_id):
+    if request.user.role not in ['ADMIN', 'SUPERUSER'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Admins/Super Users Only")
+        
+    quotation = get_object_or_404(Quotation, id=quote_id)
+    if request.method == 'POST':
+        form = QuotationForm(request.POST, instance=quotation)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Quotation updated successfully!")
+        else:
+            errors_str = " ".join([f"{k}: {v[0]}" for k, v in form.errors.items()])
+            messages.error(request, f"Failed to update quotation: {errors_str}")
+            
+    next_url = request.META.get('HTTP_REFERER', 'dashboard')
+    return redirect(next_url)
+
+
+@login_required
+def delete_quotation_view(request, quote_id):
+    if request.user.role not in ['ADMIN', 'SUPERUSER'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Admins/Super Users Only")
+        
+    quotation = get_object_or_404(Quotation, id=quote_id)
+    quotation.delete()
+    messages.success(request, "Quotation deleted successfully!")
+    
+    next_url = request.META.get('HTTP_REFERER', 'dashboard')
+    return redirect(next_url)
+
+
+@login_required
+def view_quotation_proposal_view(request, quote_id):
+    quotation = get_object_or_404(Quotation, id=quote_id)
+    
+    # Access checks:
+    # 1. Admins / Superusers can view any quotation.
+    # 2. Customers can view their own quotations if the status is NOT DRAFT.
+    is_admin = request.user.role in ['ADMIN', 'SUPERUSER'] or request.user.is_superuser
+    is_owner = quotation.customer == request.user and quotation.status != 'DRAFT'
+    
+    if not (is_admin or is_owner):
+        return HttpResponseForbidden("Access Denied: You do not have permission to view this quotation.")
+        
+    context = {
+        'quotation': quotation,
+        'material_items': [item.strip() for item in quotation.material_breakdown.split('\n') if item.strip()] if quotation.material_breakdown else [],
+    }
+    return render(request, 'core/quotation_proposal_print.html', context)
 
 

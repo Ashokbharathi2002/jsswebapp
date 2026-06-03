@@ -1,0 +1,193 @@
+<div class="row mb-4 align-items-center">
+    <div class="col-md-6">
+        <h4 class="fw-bold text-white mb-1"><i class="bi bi-file-earmark-spreadsheet text-warning me-2"></i> Quotation Registry & Proposal Generator</h4>
+        <p class="text-secondary small mb-0">Generate, track, and print solar installation proposals for customers and leads.</p>
+    </div>
+    <div class="col-md-6 text-md-end mt-3 mt-md-0">
+        <button class="btn btn-gold hover-lift text-white animate-fade-in" type="button" data-bs-toggle="modal" data-bs-target="#addQuotationModal">
+            <i class="bi bi-plus-circle me-1"></i> Generate New Quote
+        </button>
+    </div>
+</div>
+
+<!-- Search Input -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="input-group">
+            <span class="input-group-text bg-black border-secondary-subtle text-secondary"><i class="bi bi-search text-gradient-gold"></i></span>
+            <input type="text" id="quoteSearchInput" class="form-control bg-dark text-white border-secondary-subtle" placeholder="Search quotations by title, customer name, or lead details...">
+        </div>
+    </div>
+</div>
+
+<!-- Quotation List Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card glass-card p-4 border-0">
+            {% if all_quotations %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle border-0 small">
+                        <thead>
+                            <tr class="text-secondary" style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                                <th>Proposal Details</th>
+                                <th>Client / Lead</th>
+                                <th class="text-center">Capacity</th>
+                                <th class="text-end">Total Price</th>
+                                <th class="text-center">Status</th>
+                                <th>Created At</th>
+                                <th class="text-end" style="width: 150px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="quoteListTableBody">
+                            {% for quote in all_quotations %}
+                                <tr class="quote-row-item" 
+                                    data-title="{{ quote.title|lower }}" 
+                                    data-client="{% if quote.customer %}{{ quote.customer.get_full_name|lower }} {{ quote.customer.username|lower }}{% else %}{{ quote.lead_name|lower }}{% endif %}"
+                                    data-status="{{ quote.status|lower }}"
+                                    style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                    <td>
+                                        <div class="fw-bold text-white mb-0">{{ quote.title }}</div>
+                                        <span class="text-secondary-50" style="font-size: 0.75rem;">Created by @{{ quote.created_by.username }}</span>
+                                    </td>
+                                    <td>
+                                        {% if quote.customer %}
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-person-check-fill text-success me-2" title="Registered Customer"></i>
+                                                <div>
+                                                    <div class="fw-semibold text-white">{{ quote.customer.get_full_name }}</div>
+                                                    <div class="text-secondary" style="font-size: 0.75rem;">@{{ quote.customer.username }}</div>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-person-exclamation text-warning me-2" title="Unregistered Lead"></i>
+                                                <div>
+                                                    <div class="fw-semibold text-white">{{ quote.lead_name }}</div>
+                                                    <div class="text-secondary" style="font-size: 0.75rem;">
+                                                        {% if quote.lead_email %}{{ quote.lead_email }}{% endif %}
+                                                        {% if quote.lead_phone %}&bull; {{ quote.lead_phone }}{% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center fw-semibold text-gradient-gold">
+                                        {{ quote.solar_capacity_kw }} kW
+                                    </td>
+                                    <td class="text-end fw-bold text-white">
+                                        ₹{{ quote.total_price|floatformat:2 }}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if quote.status == 'DRAFT' %}
+                                            <span class="badge bg-secondary bg-opacity-20 text-secondary border border-secondary-subtle px-2 py-1">Draft</span>
+                                        {% elif quote.status == 'SENT' %}
+                                            <span class="badge bg-info bg-opacity-20 text-info border border-info-subtle px-2 py-1">Sent</span>
+                                        {% elif quote.status == 'ACCEPTED' %}
+                                            <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1">Accepted</span>
+                                        {% elif quote.status == 'REJECTED' %}
+                                            <span class="badge bg-danger bg-opacity-20 text-danger border border-danger-subtle px-2 py-1">Rejected</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-secondary">{{ quote.created_at|date:"M d, Y H:i" }}</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-flex gap-1 justify-content-end">
+                                            <!-- Print Proposal Button -->
+                                            <a href="{% url 'view_quotation_proposal' quote.id %}" target="_blank" class="btn btn-outline-info btn-sm py-1 px-2 border-0" title="Print/View Proposal">
+                                                <i class="bi bi-printer-fill"></i>
+                                            </a>
+                                            <!-- Edit Button -->
+                                            <button class="btn btn-outline-gold btn-sm py-1 px-2 border-0" type="button" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editQuotationModal" 
+                                                    data-quote-id="{{ quote.id }}"
+                                                    data-quote-customer="{{ quote.customer.id|default:'' }}"
+                                                    data-quote-lead-name="{{ quote.lead_name|default:'' }}"
+                                                    data-quote-lead-email="{{ quote.lead_email|default:'' }}"
+                                                    data-quote-lead-phone="{{ quote.lead_phone|default:'' }}"
+                                                    data-quote-title="{{ quote.title }}"
+                                                    data-quote-capacity="{{ quote.solar_capacity_kw }}"
+                                                    data-quote-breakdown="{{ quote.material_breakdown }}"
+                                                    data-quote-material-cost="{{ quote.material_cost }}"
+                                                    data-quote-labor-cost="{{ quote.labor_cost }}"
+                                                    data-quote-tax-cost="{{ quote.tax_cost }}"
+                                                    data-quote-total-price="{{ quote.total_price }}"
+                                                    data-quote-status="{{ quote.status }}"
+                                                    title="Edit Quote">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </button>
+                                            <!-- Delete Button -->
+                                            <button class="btn btn-outline-danger btn-sm py-1 px-2 border-0" type="button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteQuotationModal"
+                                                    data-quote-id="{{ quote.id }}"
+                                                    data-quote-title="{{ quote.title }}"
+                                                    title="Delete Quote">
+                                                <i class="bi bi-trash3-fill"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5" id="noQuotesPlaceholder">
+                    <i class="bi bi-file-earmark-x text-secondary fs-1 mb-3 d-block"></i>
+                    <h5 class="text-white fw-bold">No Quotations Created</h5>
+                    <p class="text-secondary small mb-4">Generate and track professional price proposals for potential clients here.</p>
+                    <button class="btn btn-gold text-white btn-sm px-4" type="button" data-bs-toggle="modal" data-bs-target="#addQuotationModal">
+                        <i class="bi bi-plus-circle me-1"></i> Create First Quotation
+                    </button>
+                </div>
+            {% endif %}
+
+            <!-- Filtered Empty State Placeholder -->
+            <div class="text-center py-5 d-none" id="filteredNoQuotesPlaceholder">
+                <i class="bi bi-search text-secondary fs-1 mb-2 animate-pulse d-block"></i>
+                <h5 class="text-white fw-bold">No matching quotations found</h5>
+                <p class="text-secondary small">Try adjusting your search query.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search filter script -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.getElementById("quoteSearchInput");
+        if (searchInput) {
+            searchInput.addEventListener("input", function (e) {
+                const query = e.target.value.toLowerCase().trim();
+                const rows = document.querySelectorAll(".quote-row-item");
+                let matchedCount = 0;
+                
+                rows.forEach(row => {
+                    const title = row.getAttribute("data-title");
+                    const client = row.getAttribute("data-client");
+                    const status = row.getAttribute("data-status");
+                    if (title.includes(query) || client.includes(query) || status.includes(query)) {
+                        row.classList.remove("d-none");
+                        matchedCount++;
+                    } else {
+                        row.classList.add("d-none");
+                    }
+                });
+                
+                const tableContainer = document.querySelector(".table-responsive");
+                const noQuotesPlaceholder = document.getElementById("noQuotesPlaceholder");
+                const filteredNoQuotesPlaceholder = document.getElementById("filteredNoQuotesPlaceholder");
+                
+                if (matchedCount === 0) {
+                    if (filteredNoQuotesPlaceholder) filteredNoQuotesPlaceholder.classList.remove("d-none");
+                    if (tableContainer) tableContainer.classList.add("d-none");
+                } else {
+                    if (filteredNoQuotesPlaceholder) filteredNoQuotesPlaceholder.classList.add("d-none");
+                    if (tableContainer) tableContainer.classList.remove("d-none");
+                }
+            });
+        }
+    });
+</script>

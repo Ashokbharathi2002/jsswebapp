@@ -317,3 +317,27 @@
     </div>
 </div> <!-- Close Tab Content -->
 {% endblock %}
+
+{% block extra_js %}
+<script>
+    // Simple code to preserve active tab upon reload
+    document.addEventListener("DOMContentLoaded", function() {
+        const activeTab = localStorage.getItem("staff_active_tab");
+        if (activeTab) {
+            const triggerEl = document.querySelector(`#staffTabs button[data-bs-target="${activeTab}"]`);
+            if (triggerEl) {
+                const tab = new bootstrap.Tab(triggerEl);
+                tab.show();
+            }
+        }
+
+        const tabButtons = document.querySelectorAll("#staffTabs button");
+        tabButtons.forEach(btn => {
+            btn.addEventListener("shown.bs.tab", function(e) {
+                const target = e.target.getAttribute("data-bs-target");
+                localStorage.setItem("staff_active_tab", target);
+            });
+        });
+    });
+</script>
+{% endblock %}

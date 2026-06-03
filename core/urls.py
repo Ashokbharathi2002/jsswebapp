@@ -32,5 +32,9 @@ urlpatterns = [
     path('notes/delete/<int:note_id>/', views.delete_note_view, name='delete_note'),
     path('notices/create/', views.create_notice_view, name='create_notice'),
     path('notices/delete/<int:notice_id>/', views.delete_notice_view, name='delete_notice'),
+    path('quotations/add/', views.add_quotation_view, name='add_quotation'),
+    path('quotations/edit/<int:quote_id>/', views.edit_quotation_view, name='edit_quotation'),
+    path('quotations/delete/<int:quote_id>/', views.delete_quotation_view, name='delete_quotation'),
+    path('quotations/view/<int:quote_id>/', views.view_quotation_proposal_view, name='view_quotation_proposal'),
 ]
 

@@ -1,0 +1,67 @@
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="fw-bold text-white mb-1"><i class="bi bi-file-earmark-text text-warning me-2"></i> Quotations & Proposals</h4>
+        <p class="text-secondary small mb-0">View cost breakdowns, capacities, and printable system proposal quotes shared by Jothi Solar Solutions.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% if client_quotations %}
+        {% for quote in client_quotations %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card glass-card p-4 border-0 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="fw-bold text-white mb-0 text-truncate pe-2" style="max-width: 75%;">{{ quote.title }}</h5>
+                            {% if quote.status == 'SENT' %}
+                                <span class="badge bg-info bg-opacity-20 text-info border border-info-subtle px-2 py-1" style="font-size: 0.7rem;">Pending Review</span>
+                            {% elif quote.status == 'ACCEPTED' %}
+                                <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1" style="font-size: 0.7rem;">Accepted</span>
+                            {% elif quote.status == 'REJECTED' %}
+                                <span class="badge bg-danger bg-opacity-20 text-danger border border-danger-subtle px-2 py-1" style="font-size: 0.7rem;">Declined</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Capacity & Price Metrics -->
+                        <div class="row g-2 mb-4 bg-black bg-opacity-25 rounded-3 p-3 text-center border border-white-50 border-opacity-5">
+                            <div class="col-6 border-end border-white-50 border-opacity-10">
+                                <small class="text-secondary d-block" style="font-size: 0.7rem;">System Size</small>
+                                <span class="fw-bold text-gradient-cyan" style="font-size: 1.1rem;">{{ quote.solar_capacity_kw }} kW</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-secondary d-block" style="font-size: 0.7rem;">Estimated Cost</small>
+                                <span class="fw-bold text-white" style="font-size: 1.1rem;">₹{{ quote.total_price|floatformat:2 }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Material Summary -->
+                        <div class="mb-3">
+                            <span class="text-secondary-50 d-block small mb-1 fw-semibold" style="font-size: 0.75rem;">Materials Breakdown:</span>
+                            {% if quote.material_breakdown %}
+                                <p class="text-secondary small mb-0 text-break" style="white-space: pre-wrap; font-size: 0.8rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;">{{ quote.material_breakdown }}</p>
+                            {% else %}
+                                <p class="text-secondary-50 small mb-0 font-italic" style="font-size: 0.8rem;">Standard residential installation components.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Footer & Print -->
+                    <div class="border-top border-white-50 border-opacity-10 pt-3 mt-4 d-flex justify-content-between align-items-center">
+                        <small class="text-secondary-50" style="font-size: 0.7rem;"><i class="bi bi-calendar3 me-1"></i> Shared {{ quote.created_at|date:"M d, Y" }}</small>
+                        <a href="{% url 'view_quotation_proposal' quote.id %}" target="_blank" class="btn btn-gold btn-sm px-3 text-white">
+                            <i class="bi bi-file-pdf me-1"></i> View Proposal
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12 text-center py-5">
+            <div class="bg-dark bg-opacity-25 rounded-4 p-5 max-width-600 mx-auto border border-secondary-subtle" style="border-style: dashed !important; border-width: 1.5px !important; border-color: rgba(255, 255, 255, 0.08) !important;">
+                <i class="bi bi-file-earmark-lock text-secondary fs-1 mb-3"></i>
+                <h5 class="text-white fw-bold">No Proposals Shared Yet</h5>
+                <p class="text-secondary small mb-0">Our engineers will upload and share your customized solar design quote here shortly.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>

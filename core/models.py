@@ -179,3 +179,55 @@ class Notice(models.Model):
         return f"{self.title} by {self.author.username}"
 
 
+class Quotation(models.Model):
+    STATUS_CHOICES = (
+        ('DRAFT', 'Draft'),
+        ('SENT', 'Sent to Client'),
+        ('ACCEPTED', 'Accepted'),
+        ('REJECTED', 'Rejected'),
+    )
+
+    customer = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='quotations',
+        limit_choices_to={'role': 'CUSTOMER'}
+    )
+    lead_name = models.CharField(max_length=150, blank=True, null=True, help_text="For unregistered leads")
+    lead_email = models.EmailField(blank=True, null=True)
+    lead_phone = models.CharField(max_length=20, blank=True, null=True)
+    
+    title = models.CharField(max_length=200, default="Solar System Proposal")
+    solar_capacity_kw = models.DecimalField(max_digits=6, decimal_places=2, default=5.00)
+    material_breakdown = models.TextField(blank=True, help_text="Details of panels, inverters, etc.")
+    
+    material_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    labor_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    tax_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    total_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='DRAFT')
+    created_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='created_quotations'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.total_price or self.total_price == 0:
+            self.total_price = self.material_cost + self.labor_cost + self.tax_cost
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        client_name = self.customer.get_full_name() if self.customer else self.lead_name
+        return f"Quote: {self.title} for {client_name} ({self.solar_capacity_kw}kW)"
+
+
+

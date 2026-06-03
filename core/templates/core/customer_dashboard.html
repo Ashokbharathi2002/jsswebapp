@@ -30,6 +30,11 @@
             <i class="bi bi-journal-text me-1"></i> My Notes
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link ms-2" id="proposals-tab" data-bs-toggle="tab" data-bs-target="#proposals-pane" type="button" role="tab" aria-controls="proposals-pane" aria-selected="false">
+            <i class="bi bi-file-earmark-text me-1"></i> My Proposals
+        </button>
+    </li>
 </ul>
 
 <div class="tab-content" id="customerTabsContent">
@@ -399,5 +404,36 @@
             {% include 'core/notes_tab_content.html' %}
         </div>
     </div>
+
+    <!-- Proposals Pane -->
+    <div class="tab-pane fade" id="proposals-pane" role="tabpanel" aria-labelledby="proposals-tab">
+        <div class="card glass-card p-4 p-md-5 border-0">
+            {% include 'core/client_quotations_tab.html' %}
+        </div>
+    </div>
 </div> <!-- Close Tab Content -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Simple code to preserve active tab upon reload
+    document.addEventListener("DOMContentLoaded", function() {
+        const activeTab = localStorage.getItem("customer_active_tab");
+        if (activeTab) {
+            const triggerEl = document.querySelector(`#customerTabs button[data-bs-target="${activeTab}"]`);
+            if (triggerEl) {
+                const tab = new bootstrap.Tab(triggerEl);
+                tab.show();
+            }
+        }
+
+        const tabButtons = document.querySelectorAll("#customerTabs button");
+        tabButtons.forEach(btn => {
+            btn.addEventListener("shown.bs.tab", function(e) {
+                const target = e.target.getAttribute("data-bs-target");
+                localStorage.setItem("customer_active_tab", target);
+            });
+        });
+    });
+</script>
 {% endblock %}
