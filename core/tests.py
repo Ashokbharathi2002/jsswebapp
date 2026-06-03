@@ -488,7 +488,7 @@ class SuperUserDashboardTests(TestCase):
         self.assertTrue(login_success)
 
 
-class PersonalNotesAndNoticeTests(TestCase):
+class NoticeTests(TestCase):
     def setUp(self):
         self.client = Client()
         # Get active user model
@@ -506,43 +506,6 @@ class PersonalNotesAndNoticeTests(TestCase):
             role="ADMIN",
             is_approved=True
         )
-
-    def test_add_personal_note(self):
-        """Verify that a logged in user can create a personal note."""
-        self.client.login(username="regularuser", password="userpassword")
-        response = self.client.post(reverse('add_note'), {
-            'title': 'Test Personal Note Title',
-            'content': 'This is the test content of the personal note.'
-        })
-        self.assertEqual(response.status_code, 302)
-        from core.models import Note
-        note = Note.objects.filter(user=self.user).first()
-        self.assertIsNotNone(note)
-        self.assertEqual(note.title, 'Test Personal Note Title')
-        self.assertEqual(note.content, 'This is the test content of the personal note.')
-
-    def test_edit_personal_note(self):
-        """Verify that a user can edit their own personal note."""
-        from core.models import Note
-        note = Note.objects.create(user=self.user, title='Old Title', content='Old content')
-        self.client.login(username="regularuser", password="userpassword")
-        response = self.client.post(reverse('edit_note', args=[note.id]), {
-            'title': 'New Title',
-            'content': 'New content'
-        })
-        self.assertEqual(response.status_code, 302)
-        note.refresh_from_db()
-        self.assertEqual(note.title, 'New Title')
-        self.assertEqual(note.content, 'New content')
-
-    def test_delete_personal_note(self):
-        """Verify that a user can delete their own personal note."""
-        from core.models import Note
-        note = Note.objects.create(user=self.user, title='To Delete', content='content')
-        self.client.login(username="regularuser", password="userpassword")
-        response = self.client.post(reverse('delete_note', args=[note.id]))
-        self.assertEqual(response.status_code, 302)
-        self.assertFalse(Note.objects.filter(id=note.id).exists())
 
     def test_create_and_delete_notice_by_admin(self):
         """Verify noticeboard announcements can be created and deleted by admins."""

@@ -29,11 +29,7 @@
             <i class="bi bi-speedometer2 me-1"></i> Worker Hub Overview
         </button>
     </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes-pane" type="button" role="tab" aria-controls="notes-pane" aria-selected="false">
-            <i class="bi bi-journal-text me-1"></i> My Notes
-        </button>
-    </li>
+
 </ul>
 
 <div class="tab-content" id="staffTabsContent">
@@ -309,12 +305,7 @@
 
 </div> <!-- Close Overview Pane -->
 
-    <!-- Notes Pane -->
-    <div class="tab-pane fade" id="notes-pane" role="tabpanel" aria-labelledby="notes-tab">
-        <div class="card glass-card p-4 p-md-5 border-0">
-            {% include 'core/notes_tab_content.html' %}
-        </div>
-    </div>
+
 </div> <!-- Close Tab Content -->
 {% endblock %}
 

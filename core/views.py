@@ -9,7 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 from django.utils import timezone
 
-from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Note, Notice, Quotation
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation
 from .forms import (
     CustomerSignUpForm, 
     StaffCreationForm, 
@@ -1183,52 +1183,6 @@ def export_salaries_csv(request):
         
     return response
 
-
-@login_required
-def add_note_view(request):
-    if request.method == 'POST':
-        title = request.POST.get('title', '').strip()
-        content = request.POST.get('content', '').strip()
-        if not title:
-            title = "Untitled Note"
-        
-        Note.objects.create(
-            user=request.user,
-            title=title,
-            content=content
-        )
-        messages.success(request, "Note created successfully!")
-    
-    next_url = request.META.get('HTTP_REFERER', 'dashboard')
-    return redirect(next_url)
-
-
-@login_required
-def edit_note_view(request, note_id):
-    note = get_object_or_404(Note, id=note_id, user=request.user)
-    if request.method == 'POST':
-        title = request.POST.get('title', '').strip()
-        content = request.POST.get('content', '').strip()
-        if not title:
-            title = "Untitled Note"
-        
-        note.title = title
-        note.content = content
-        note.save()
-        messages.success(request, "Note updated successfully!")
-    
-    next_url = request.META.get('HTTP_REFERER', 'dashboard')
-    return redirect(next_url)
-
-
-@login_required
-def delete_note_view(request, note_id):
-    note = get_object_or_404(Note, id=note_id, user=request.user)
-    note.delete()
-    messages.success(request, "Note deleted successfully!")
-    
-    next_url = request.META.get('HTTP_REFERER', 'dashboard')
-    return redirect(next_url)
 
 
 @login_required

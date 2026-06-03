@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Note, Notice, Quotation
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
@@ -24,12 +24,6 @@ class ComplaintAdmin(admin.ModelAdmin):
     list_display = ('customer', 'subject', 'status', 'created_at')
     list_filter = ('status', 'created_at')
     search_fields = ('customer__username', 'subject')
-
-@admin.register(Note)
-class NoteAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'updated_at')
-    list_filter = ('updated_at',)
-    search_fields = ('title', 'user__username')
 
 @admin.register(Notice)
 class NoticeAdmin(admin.ModelAdmin):

@@ -143,23 +143,6 @@ class Complaint(models.Model):
         return f"{self.customer.username} - {self.subject} ({self.get_status_display()})"
 
 
-class Note(models.Model):
-    user = models.ForeignKey(
-        CustomUser,
-        on_delete=models.CASCADE,
-        related_name='notes'
-    )
-    title = models.CharField(max_length=200, default="Untitled Note")
-    content = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-updated_at']
-
-    def __str__(self):
-        return f"{self.user.username} - {self.title}"
-
 
 class Notice(models.Model):
     author = models.ForeignKey(
