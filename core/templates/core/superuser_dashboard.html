@@ -1189,6 +1189,9 @@
                                                     <button class="btn btn-outline-warning action-btn-pill" type="button" data-bs-toggle="collapse" data-bs-target="#reset-customer-{{ item.customer.id }}">
                                                         <i class="bi bi-key-fill me-1"></i>Reset
                                                     </button>
+                                                    <button class="btn btn-danger action-btn-pill text-white border-0" type="button" data-bs-toggle="collapse" data-bs-target="#delete-customer-{{ item.customer.id }}">
+                                                        <i class="bi bi-trash-fill me-1"></i>Delete
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1256,6 +1259,27 @@
                                                             <div class="d-flex justify-content-end gap-2 mt-2">
                                                                 <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#reset-customer-{{ item.customer.id }}">Cancel</button>
                                                                 <button type="submit" class="btn btn-danger btn-sm text-white">Force Reset Password</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <!-- Collapsible Delete Confirmation Form -->
+                                        <tr>
+                                            <td colspan="4" class="p-0 border-0">
+                                                <div class="collapse" id="delete-customer-{{ item.customer.id }}">
+                                                    <div class="card collapse-card p-4 my-2 mx-3" style="border-color: rgba(239, 68, 68, 0.4) !important; background: rgba(239, 68, 68, 0.05) !important;">
+                                                        <h6 class="fw-bold text-danger mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Customer Account</h6>
+                                                        <p class="text-white-50 small mb-3">Are you sure you want to permanently delete Customer <strong>{{ item.customer.username }}</strong>? This action is irreversible.</p>
+                                                        <form method="POST">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="action" value="delete_user">
+                                                            <input type="hidden" name="user_id" value="{{ item.customer.id }}">
+                                                            
+                                                            <div class="d-flex justify-content-end gap-2">
+                                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#delete-customer-{{ item.customer.id }}">Cancel</button>
+                                                                <button type="submit" class="btn btn-danger btn-sm text-white">Permanently Delete</button>
                                                             </div>
                                                         </form>
                                                     </div>

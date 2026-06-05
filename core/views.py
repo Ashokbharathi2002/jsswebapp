@@ -909,13 +909,13 @@ def superuser_dashboard(request):
             user_to_delete = get_object_or_404(CustomUser, id=user_id)
             if user_to_delete == request.user:
                 messages.error(request, "You cannot delete your own Super User account.")
-            elif user_to_delete.role in ['ADMIN', 'STAFF', 'EMPLOYEE']:
+            elif user_to_delete.role in ['ADMIN', 'STAFF', 'EMPLOYEE', 'CUSTOMER']:
                 username = user_to_delete.username
                 role = user_to_delete.get_role_display()
                 user_to_delete.delete()
                 messages.warning(request, f"{role} '{username}' has been permanently deleted.")
             else:
-                messages.error(request, "Only Admin, Staff, and Employee accounts can be deleted.")
+                messages.error(request, "Only Admin, Staff, Employee, and Customer accounts can be deleted.")
             return redirect('superuser_dashboard')
         elif action == 'close_project':
             project_id = request.POST.get('project_id')

@@ -487,6 +487,23 @@ class SuperUserDashboardTests(TestCase):
         login_success = self.client.login(username="teststaff", password="newstaffpassword123")
         self.assertTrue(login_success)
 
+    def test_superuser_delete_customer(self):
+        """Verify that a superuser can permanently delete a Customer (client) account."""
+        self.client.login(username="superuser", password="solar123")
+        
+        # Verify customer exists before deletion
+        self.assertTrue(User.objects.filter(id=self.test_customer.id).exists())
+        
+        # Delete customer via dashboard action
+        response = self.client.post(reverse('superuser_dashboard'), {
+            'action': 'delete_user',
+            'user_id': self.test_customer.id
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify customer has been permanently deleted from database
+        self.assertFalse(User.objects.filter(id=self.test_customer.id).exists())
+
 
 class NoticeTests(TestCase):
     def setUp(self):

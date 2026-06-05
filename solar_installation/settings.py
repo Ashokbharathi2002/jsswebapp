@@ -114,24 +114,37 @@ DATABASES = {
 }
 
 if dj_database_url and os.environ.get('DATABASE_URL'):
-    DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
-    if DATABASES['default'].get('ENGINE') == 'django.db.backends.mysql':
-        # mysqlclient expects ssl_mode in OPTIONS, while dj_database_url
-        # might set ssl-mode (from query params) or sslmode (from ssl_require=True).
-        options = DATABASES['default'].setdefault('OPTIONS', {})
-        ssl_mode_param = options.pop('ssl-mode', None)
-        sslmode_param = options.pop('sslmode', None)
-        ssl_mode = ssl_mode_param or sslmode_param
-        if ssl_mode:
-            import sys
-            is_pymysql = 'pymysql' in sys.modules
-            if is_pymysql:
-                options['ssl'] = {'ssl_mode': 'REQUIRED'} if ssl_mode.lower() in ('require', 'required') else {'ssl_mode': ssl_mode.upper()}
-            else:
-                if ssl_mode.lower() in ('require', 'required'):
-                    options['ssl_mode'] = 'REQUIRED'
+    db_url = os.environ.get('DATABASE_URL')
+    import urllib.parse
+    import socket
+    
+    host_resolvable = True
+    try:
+        parsed = urllib.parse.urlparse(db_url)
+        if parsed.hostname:
+            socket.gethostbyname(parsed.hostname)
+    except (socket.gaierror, ValueError):
+        host_resolvable = False
+        
+    if host_resolvable:
+        DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
+        if DATABASES['default'].get('ENGINE') == 'django.db.backends.mysql':
+            options = DATABASES['default'].setdefault('OPTIONS', {})
+            ssl_mode_param = options.pop('ssl-mode', None)
+            sslmode_param = options.pop('sslmode', None)
+            ssl_mode = ssl_mode_param or sslmode_param
+            if ssl_mode:
+                import sys
+                is_pymysql = 'pymysql' in sys.modules
+                if is_pymysql:
+                    options['ssl'] = {'ssl_mode': 'REQUIRED'} if ssl_mode.lower() in ('require', 'required') else {'ssl_mode': ssl_mode.upper()}
                 else:
-                    options['ssl_mode'] = ssl_mode.upper()
+                    if ssl_mode.lower() in ('require', 'required'):
+                        options['ssl_mode'] = 'REQUIRED'
+                    else:
+                        options['ssl_mode'] = ssl_mode.upper()
+    else:
+        print("Warning: DATABASE_URL host is unresolvable. Falling back to local SQLite database.")
 
 
 
