@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from decimal import Decimal
-from core.models import SolarInstallationProject, Attendance, Complaint
+from core.models import SolarInstallationProject, Attendance, Complaint, LoginLog
 
 User = get_user_model()
 
@@ -690,5 +690,99 @@ class QuotationTests(TestCase):
         # Cannot view other customer's quote
         other_resp = self.client.get(reverse('view_quotation_proposal', args=[other_quote.id]))
         self.assertEqual(other_resp.status_code, 403)
+
+
+class LoginLogTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.superuser = User.objects.create_superuser(
+            username="superuser",
+            email="superuser@solar.com",
+            password="solar123",
+            role="SUPERUSER",
+            is_approved=True
+        )
+        self.admin = User.objects.create_user(
+            username="testadmin",
+            email="admin@test.com",
+            password="adminpassword",
+            role="ADMIN",
+            is_approved=True
+        )
+        self.staff = User.objects.create_user(
+            username="teststaff",
+            email="staff@test.com",
+            password="staffpassword",
+            role="STAFF",
+            is_approved=True
+        )
+        self.customer = User.objects.create_user(
+            username="testcustomer",
+            email="customer@test.com",
+            password="customerpassword",
+            role="CUSTOMER",
+            is_approved=True
+        )
+
+    def test_login_creates_log_entry(self):
+        """Verify that a successful login creates a LoginLog entry."""
+        # Initial check
+        self.assertEqual(LoginLog.objects.count(), 0)
+        
+        # Log in
+        login_success = self.client.login(username="testadmin", password="adminpassword")
+        self.assertTrue(login_success)
+        
+        # Verify log entry is created
+        self.assertEqual(LoginLog.objects.count(), 1)
+        log = LoginLog.objects.first()
+        self.assertEqual(log.user, self.admin)
+        self.assertIsNotNone(log.login_time)
+
+    def test_logs_visibility_in_dashboards(self):
+        """Verify that only superusers and admins can see login logs on dashboards."""
+        # Create some dummy logs
+        LoginLog.objects.create(user=self.customer, ip_address="127.0.0.1", user_agent="Mozilla")
+        LoginLog.objects.create(user=self.staff, ip_address="127.0.0.1", user_agent="Chrome")
+        
+        # 1. Superuser dashboard access
+        self.client.login(username="superuser", password="solar123")
+        response = self.client.get(reverse('superuser_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('login_logs_today', response.context)
+        self.assertIn('login_logs_all', response.context)
+        self.assertContains(response, "User Login Audit Logs")
+        self.assertContains(response, "@testcustomer")
+        self.assertContains(response, "@teststaff")
+        self.client.logout()
+
+        # 2. Admin dashboard access
+        self.client.login(username="testadmin", password="adminpassword")
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('login_logs_today', response.context)
+        self.assertIn('login_logs_all', response.context)
+        self.assertContains(response, "User Login Audit Logs")
+        self.assertContains(response, "@testcustomer")
+        self.assertContains(response, "@teststaff")
+        self.client.logout()
+
+        # 3. Staff dashboard access (should not have logs)
+        self.client.login(username="teststaff", password="staffpassword")
+        response = self.client.get(reverse('staff_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('login_logs_today', response.context)
+        self.assertNotIn('login_logs_all', response.context)
+        self.assertNotContains(response, "User Login Audit Logs")
+        self.client.logout()
+
+        # 4. Customer dashboard access (should not have logs)
+        self.client.login(username="testcustomer", password="customerpassword")
+        response = self.client.get(reverse('customer_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('login_logs_today', response.context)
+        self.assertNotIn('login_logs_all', response.context)
+        self.assertNotContains(response, "User Login Audit Logs")
+
 
 

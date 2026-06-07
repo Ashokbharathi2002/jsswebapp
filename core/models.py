@@ -237,5 +237,19 @@ class ProjectExpense(models.Model):
         return f"{self.title} - ₹{self.amount} for {self.project.title}"
 
 
+class LoginLog(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='login_logs')
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.TextField(blank=True, null=True)
+    login_time = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-login_time']
+
+    def __str__(self):
+        return f"{self.user.username} logged in at {self.login_time}"
+
+
+
 
 

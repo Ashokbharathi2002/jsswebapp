@@ -9,7 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 from django.utils import timezone
 
-from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense, LoginLog
 from .forms import (
     CustomerSignUpForm, 
     StaffCreationForm, 
@@ -613,6 +613,11 @@ def admin_dashboard(request):
     expense_projects = SolarInstallationProject.objects.all().order_by('-id')
     total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0.00
 
+    # Login logs
+    one_day_ago = timezone.now() - timezone.timedelta(days=1)
+    login_logs_today = LoginLog.objects.filter(login_time__gte=one_day_ago).order_by('-login_time')
+    login_logs_all = LoginLog.objects.all().order_by('-login_time')[:1000]
+
     context = {
         'total_clients': total_clients,
         'active_installations': active_installations,
@@ -646,6 +651,10 @@ def admin_dashboard(request):
         'expenses': expenses,
         'expense_projects': expense_projects,
         'total_expenses': total_expenses,
+
+        # Login Logs
+        'login_logs_today': login_logs_today,
+        'login_logs_all': login_logs_all,
     }
     return render(request, 'core/admin_dashboard.html', context)
 
@@ -1024,6 +1033,11 @@ def superuser_dashboard(request):
     expense_projects = SolarInstallationProject.objects.all().order_by('-id')
     total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0.00
 
+    # Login logs
+    one_day_ago = timezone.now() - timezone.timedelta(days=1)
+    login_logs_today = LoginLog.objects.filter(login_time__gte=one_day_ago).order_by('-login_time')
+    login_logs_all = LoginLog.objects.all().order_by('-login_time')[:1000]
+
     context = {
         'total_revenue': total_revenue,
         'total_received': total_received,
@@ -1074,6 +1088,10 @@ def superuser_dashboard(request):
         'expenses': expenses,
         'expense_projects': expense_projects,
         'total_expenses': total_expenses,
+
+        # Login Logs
+        'login_logs_today': login_logs_today,
+        'login_logs_all': login_logs_all,
     }
     return render(request, 'core/superuser_dashboard.html', context)
 

@@ -1,0 +1,153 @@
+<div class="row align-items-center mb-4 animate-fade-in">
+    <div class="col-md-8">
+        <h4 class="fw-bold text-white mb-1"><i class="bi bi-journal-text text-gradient-gold me-2"></i> User Login Audit Logs</h4>
+        <p class="text-secondary small mb-0">Monitor platform access, authentication events, IP addresses, and device signatures.</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <div class="glass-card px-3 py-2 border-0 text-start d-inline-flex align-items-center gap-2" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color) !important;">
+            <i class="bi bi-shield-check text-success fs-5"></i>
+            <div>
+                <div class="text-secondary-50" style="font-size: 0.65rem; font-weight: 600;">ACTIVE SESSION LIMIT</div>
+                <div class="fw-bold text-white small">24 Hours (Auto-Logout)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sub-Tabs Navigation for Logs -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <ul class="nav nav-pills glass-pills gap-1 p-1" id="loginLogsTab" role="tablist" style="background: rgba(0, 0, 0, 0.2); border-radius: 30px; border: 1px solid var(--border-color); width: fit-content;">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active btn-sm rounded-pill px-3 py-1 text-white text-opacity-75" id="today-logs-tab" data-bs-toggle="pill" data-bs-target="#today-logs" type="button" role="tab" aria-controls="today-logs" aria-selected="true" style="font-size: 0.8rem;">
+                <i class="bi bi-clock-history me-1"></i> Last 24 Hours
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link btn-sm rounded-pill px-3 py-1 text-white text-opacity-75" id="all-logs-tab" data-bs-toggle="pill" data-bs-target="#all-logs" type="button" role="tab" aria-controls="all-logs" aria-selected="false" style="font-size: 0.8rem;">
+                <i class="bi bi-list-nested me-1"></i> All History
+            </button>
+        </li>
+    </ul>
+</div>
+
+<div class="tab-content" id="loginLogsTabContent">
+    <!-- SUB-TAB 1: LAST 24 HOURS -->
+    <div class="tab-pane fade show active" id="today-logs" role="tabpanel" aria-labelledby="today-logs-tab">
+        {% if login_logs_today %}
+            <div class="table-responsive animate-fade-in">
+                <table class="table table-dark table-hover align-middle border-0 small mb-0">
+                    <thead>
+                        <tr class="text-secondary">
+                            <th>User Details</th>
+                            <th>IP Address</th>
+                            <th>Device / Browser (User Agent)</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in login_logs_today %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-initials bg-warning text-dark fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.8rem; background-color: var(--accent-gold) !important; color: #000 !important;">
+                                            {{ log.user.profile_picture_initials|default:"U" }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-white">{{ log.user.get_full_name|default:log.user.username }}</div>
+                                            <div class="text-secondary-50 small" style="font-size: 0.75rem;">@{{ log.user.username }} • <span class="badge bg-secondary text-white-50" style="font-size: 0.65rem;">{{ log.user.get_role_display }}</span></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="font-monospace text-info">{{ log.ip_address|default:"Unknown IP" }}</span>
+                                </td>
+                                <td>
+                                    <div class="text-secondary-50" style="font-size: 0.75rem; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ log.user_agent }}">
+                                        {{ log.user_agent|default:"N/A" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-white-50">{{ log.login_time|date:"M d, Y H:i" }}</div>
+                                    <div class="text-secondary small" style="font-size: 0.7rem;">{{ log.login_time|timesince }} ago</div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5 bg-dark bg-opacity-20 rounded-4 border border-secondary border-opacity-10 animate-fade-in">
+                <i class="bi bi-clock text-secondary fs-2 mb-2 d-block"></i>
+                <p class="text-secondary small mb-0">No login logs recorded in the last 24 hours.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- SUB-TAB 2: ALL-TIME HISTORY -->
+    <div class="tab-pane fade" id="all-logs" role="tabpanel" aria-labelledby="all-logs-tab">
+        {% if login_logs_all %}
+            <div class="table-responsive animate-fade-in">
+                <table class="table table-dark table-hover align-middle border-0 small mb-0">
+                    <thead>
+                        <tr class="text-secondary">
+                            <th>User Details</th>
+                            <th>IP Address</th>
+                            <th>Device / Browser (User Agent)</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in login_logs_all %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-initials bg-warning text-dark fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.8rem; background-color: var(--accent-gold) !important; color: #000 !important;">
+                                            {{ log.user.profile_picture_initials|default:"U" }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-white">{{ log.user.get_full_name|default:log.user.username }}</div>
+                                            <div class="text-secondary-50 small" style="font-size: 0.75rem;">@{{ log.user.username }} • <span class="badge bg-secondary text-white-50" style="font-size: 0.65rem;">{{ log.user.get_role_display }}</span></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="font-monospace text-info">{{ log.ip_address|default:"Unknown IP" }}</span>
+                                </td>
+                                <td>
+                                    <div class="text-secondary-50" style="font-size: 0.75rem; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ log.user_agent }}">
+                                        {{ log.user_agent|default:"N/A" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-white-50">{{ log.login_time|date:"M d, Y H:i" }}</div>
+                                    <div class="text-secondary small" style="font-size: 0.7rem;">{{ log.login_time|timesince }} ago</div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-end text-secondary small mt-2" style="font-size: 0.7rem;">
+                Showing up to 1000 most recent logs. Full archive is available in the Django Admin Panel.
+            </div>
+        {% else %}
+            <div class="text-center py-5 bg-dark bg-opacity-20 rounded-4 border border-secondary border-opacity-10 animate-fade-in">
+                <i class="bi bi-clock-fill text-secondary fs-2 mb-2 d-block"></i>
+                <p class="text-secondary small mb-0">No login logs recorded yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* Styling for glass nav pills to align with dark theme design aesthetics */
+    .glass-pills .nav-link.active {
+        background-color: var(--accent-gold) !important;
+        color: #000 !important;
+        font-weight: 600;
+        box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+    }
+    .glass-pills .nav-link:hover:not(.active) {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+</style>
