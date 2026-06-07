@@ -2,6 +2,17 @@
 
 {% block title %}Staff Dashboard | Jothi Solar Solutions{% endblock %}
 
+{% block sidebar %}
+<div class="nav flex-column sidebar-nav" id="staffTabs" role="tablist" aria-orientation="vertical">
+    <button class="nav-link active text-start" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview-pane" type="button" role="tab" aria-controls="overview-pane" aria-selected="true">
+        <i class="bi bi-speedometer2 me-2"></i> Worker Hub Overview
+    </button>
+    <button class="nav-link text-start" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses-pane" type="button" role="tab" aria-controls="expenses-pane" aria-selected="false">
+        <i class="bi bi-cash-coin me-2"></i> Project Expenses
+    </button>
+</div>
+{% endblock %}
+
 {% block content %}
 <!-- Welcome & Key KPI Metrics -->
 <div class="row mb-4 align-items-center">
@@ -22,15 +33,7 @@
 <!-- Announcement Notice Banner -->
 {% include 'core/notices_banner.html' %}
 
-<!-- Navigation Tab Pills -->
-<ul class="nav nav-pills g-2 mb-4" id="staffTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link me-2 active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview-pane" type="button" role="tab" aria-controls="overview-pane" aria-selected="true">
-            <i class="bi bi-speedometer2 me-1"></i> Worker Hub Overview
-        </button>
-    </li>
-
-</ul>
+<!-- Tabs layout handled in responsive sidebar -->
 
 <div class="tab-content" id="staffTabsContent">
     <!-- Overview Pane -->
@@ -305,6 +308,12 @@
 
 </div> <!-- Close Overview Pane -->
 
+<!-- Project Expenses Pane -->
+<div class="tab-pane fade" id="expenses-pane" role="tabpanel" aria-labelledby="expenses-tab">
+    <div class="card glass-card p-4 border-0">
+        {% include 'core/expenses_tab_content.html' %}
+    </div>
+</div>
 
 </div> <!-- Close Tab Content -->
 {% endblock %}

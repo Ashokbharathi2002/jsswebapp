@@ -240,9 +240,168 @@
 </div>
 {% endif %}
 
+<!-- Add Expense Modal (Admins/Superusers/Staff) -->
+{% if request.user.role == 'ADMIN' or request.user.role == 'SUPERUSER' or request.user.role == 'STAFF' or request.user.is_superuser %}
+<div class="modal fade" id="addExpenseModal" tabindex="-1" aria-labelledby="addExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
+            <div class="modal-header border-bottom border-white-50 border-opacity-10">
+                <h5 class="modal-title fw-bold" id="addExpenseModalLabel"><i class="bi bi-cash-stack text-gradient-gold me-2"></i>Log Project Expense</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'add_expense' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body text-start">
+                    <div class="mb-3">
+                        <label for="addExpenseProject" class="form-label small text-white-50">Select Project</label>
+                        <select name="project" id="addExpenseProject" class="form-select bg-black text-white border-secondary-subtle" required>
+                            <option value="">-- Choose Project --</option>
+                            {% for proj in expense_projects %}
+                                <option value="{{ proj.id }}">{{ proj.title }} (Client: {{ proj.customer.username }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addExpenseTitle" class="form-label small text-white-50">Expense Title / Category</label>
+                        <input type="text" name="title" id="addExpenseTitle" class="form-control bg-black text-white" placeholder="e.g. Purchase of solar mounts..." required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="addExpenseAmount" class="form-label small text-white-50">Amount (₹)</label>
+                            <input type="number" name="amount" id="addExpenseAmount" class="form-control bg-black text-white" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="addExpenseDate" class="form-label small text-white-50">Date of Expense</label>
+                            <input type="date" name="date" id="addExpenseDate" class="form-control bg-black text-white" value="{% now 'Y-m-d' %}" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addExpenseNotes" class="form-label small text-white-50">Additional Notes</label>
+                        <textarea name="notes" id="addExpenseNotes" class="form-control bg-black text-white" rows="3" placeholder="Receipt details, merchant name..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-white-50 border-opacity-10">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-gold btn-sm text-white px-4">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Expense Modal (Admins/Superusers/Staff) -->
+<div class="modal fade" id="editExpenseModal" tabindex="-1" aria-labelledby="editExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
+            <div class="modal-header border-bottom border-white-50 border-opacity-10">
+                <h5 class="modal-title fw-bold" id="editExpenseModalLabel"><i class="bi bi-pencil-square text-gradient-gold me-2"></i>Modify Expense Log</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editExpenseForm" method="POST">
+                {% csrf_token %}
+                <div class="modal-body text-start">
+                    <div class="mb-3">
+                        <label for="editExpenseProject" class="form-label small text-white-50">Select Project</label>
+                        <select name="project" id="editExpenseProject" class="form-select bg-black text-white border-secondary-subtle" required>
+                            <option value="">-- Choose Project --</option>
+                            {% for proj in expense_projects %}
+                                <option value="{{ proj.id }}">{{ proj.title }} (Client: {{ proj.customer.username }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editExpenseTitle" class="form-label small text-white-50">Expense Title / Category</label>
+                        <input type="text" name="title" id="editExpenseTitle" class="form-control bg-black text-white" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="editExpenseAmount" class="form-label small text-white-50">Amount (₹)</label>
+                            <input type="number" name="amount" id="editExpenseAmount" class="form-control bg-black text-white" step="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editExpenseDate" class="form-label small text-white-50">Date of Expense</label>
+                            <input type="date" name="date" id="editExpenseDate" class="form-control bg-black text-white" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editExpenseNotes" class="form-label small text-white-50">Additional Notes</label>
+                        <textarea name="notes" id="editExpenseNotes" class="form-control bg-black text-white" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-white-50 border-opacity-10">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-gold btn-sm text-white px-4">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Expense Modal (Admins/Superusers/Staff) -->
+<div class="modal fade" id="deleteExpenseModal" tabindex="-1" aria-labelledby="deleteExpenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content glass-card text-white" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
+            <div class="modal-header border-bottom border-white-50 border-opacity-10 py-2">
+                <h6 class="modal-title fw-bold text-danger" id="deleteExpenseModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Expense</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-start py-3">
+                <p class="mb-0 small text-secondary">Are you sure you want to permanently delete expense <strong id="deleteExpenseTitleText"></strong>? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-top border-white-50 border-opacity-10 py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <a id="deleteExpenseConfirmBtn" href="" class="btn btn-danger btn-sm px-3 border-0 bg-danger text-white">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Dynamic Modals Populator JavaScript -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        // Expense Modals Population
+        const editExpenseModal = document.getElementById("editExpenseModal");
+        if (editExpenseModal) {
+            editExpenseModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+                
+                const expenseId = button.getAttribute("data-expense-id");
+                const project = button.getAttribute("data-expense-project");
+                const title = button.getAttribute("data-expense-title");
+                const amount = button.getAttribute("data-expense-amount");
+                const date = button.getAttribute("data-expense-date");
+                const notes = button.getAttribute("data-expense-notes");
+                
+                const form = editExpenseModal.querySelector("#editExpenseForm");
+                form.action = `/expenses/edit/${expenseId}/`;
+                
+                editExpenseModal.querySelector("#editExpenseProject").value = project;
+                editExpenseModal.querySelector("#editExpenseTitle").value = title;
+                editExpenseModal.querySelector("#editExpenseAmount").value = amount;
+                editExpenseModal.querySelector("#editExpenseDate").value = date;
+                editExpenseModal.querySelector("#editExpenseNotes").value = notes;
+            });
+        }
+
+        const deleteExpenseModal = document.getElementById("deleteExpenseModal");
+        if (deleteExpenseModal) {
+            deleteExpenseModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                if (!button) return;
+                
+                const expenseId = button.getAttribute("data-expense-id");
+                const title = button.getAttribute("data-expense-title");
+                
+                const confirmBtn = deleteExpenseModal.querySelector("#deleteExpenseConfirmBtn");
+                const titleText = deleteExpenseModal.querySelector("#deleteExpenseTitleText");
+                
+                confirmBtn.href = `/expenses/delete/${expenseId}/`;
+                titleText.textContent = `"${title}"`;
+            });
+        }
+
         // 3. Delete Notice modal population
         const deleteNoticeModal = document.getElementById("deleteNoticeModal");
         if (deleteNoticeModal) {

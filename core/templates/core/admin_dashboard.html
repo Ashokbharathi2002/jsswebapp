@@ -2,25 +2,43 @@
 
 {% block title %}Admin Center | Jothi Solar Solutions{% endblock %}
 
+{% block sidebar %}
+<div class="nav flex-column sidebar-nav" id="adminTabs" role="tablist" aria-orientation="vertical">
+    <button class="nav-link active text-start" id="approvals-tab" data-bs-toggle="tab" data-bs-target="#approvals-pane" type="button" role="tab" aria-controls="approvals-pane" aria-selected="true">
+        <i class="bi bi-person-exclamation me-2"></i> Pending Approvals ({{ pending_approvals_count }})
+    </button>
+    <button class="nav-link text-start" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff-pane" type="button" role="tab" aria-controls="staff-pane" aria-selected="false">
+        <i class="bi bi-person-workspace me-2"></i> Manage Staff
+    </button>
+    <button class="nav-link text-start" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees-pane" type="button" role="tab" aria-controls="employees-pane" aria-selected="false">
+        <i class="bi bi-people-fill me-2"></i> Manage Employees
+    </button>
+    <button class="nav-link text-start" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance-pane" type="button" role="tab" aria-controls="attendance-pane" aria-selected="false">
+        <i class="bi bi-calendar-check-fill me-2"></i> Attendance Tracker
+    </button>
+    <button class="nav-link text-start" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects-pane" type="button" role="tab" aria-controls="projects-pane" aria-selected="false">
+        <i class="bi bi-gear-fill me-2"></i> Deploy Project
+    </button>
+    <button class="nav-link text-start" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers-pane" type="button" role="tab" aria-controls="customers-pane" aria-selected="false">
+        <i class="bi bi-person-badge-fill me-2"></i> Clients & Customers
+    </button>
+    <button class="nav-link text-start d-flex justify-content-between align-items-center" id="complaints-tab" data-bs-toggle="tab" data-bs-target="#complaints-pane" type="button" role="tab" aria-controls="complaints-pane" aria-selected="false">
+        <span><i class="bi bi-chat-square-text-fill me-2"></i> Complaints Inbox</span>
+        {% if pending_complaints_count > 0 %}
+            <span class="badge bg-danger animate-pulse" style="font-size: 0.65rem;">{{ pending_complaints_count }}</span>
+        {% endif %}
+    </button>
+    <button class="nav-link text-start" id="quotations-tab" data-bs-toggle="tab" data-bs-target="#quotations-pane" type="button" role="tab" aria-controls="quotations-pane" aria-selected="false">
+        <i class="bi bi-file-earmark-spreadsheet me-2"></i> Quotations
+    </button>
+    <button class="nav-link text-start" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses-pane" type="button" role="tab" aria-controls="expenses-pane" aria-selected="false">
+        <i class="bi bi-cash-coin me-2"></i> Project Expenses
+    </button>
+</div>
+{% endblock %}
+
 {% block extra_css %}
 <style>
-    .nav-pills .nav-link {
-        color: var(--text-secondary);
-        font-weight: 600;
-        background-color: transparent !important;
-        border: 1.5px solid var(--accent-gold);
-        border-radius: 10px;
-        transition: all 0.2s ease;
-    }
-    .nav-pills .nav-link.active {
-        color: #050811 !important;
-        background-color: var(--accent-gold) !important;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    }
-    .nav-pills .nav-link:hover:not(.active) {
-        color: var(--accent-gold) !important;
-        background-color: rgba(16, 185, 129, 0.05) !important;
-    }
     .table-responsive {
         background-color: rgba(5, 8, 17, 0.4);
         border-radius: 12px;
@@ -130,53 +148,7 @@
     <div class="col-12">
         <div class="card glass-card border-0 p-4">
             
-            <!-- Navigation Tabs Pills -->
-            <ul class="nav nav-pills g-2 mb-4" id="adminTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link me-2 active" id="approvals-tab" data-bs-toggle="tab" data-bs-target="#approvals-pane" type="button" role="tab" aria-controls="approvals-pane" aria-selected="true">
-                        <i class="bi bi-person-exclamation me-1"></i> Pending Approvals ({{ pending_approvals_count }})
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link me-2" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff-pane" type="button" role="tab" aria-controls="staff-pane" aria-selected="false">
-                        <i class="bi bi-person-workspace me-1"></i> Manage Staff
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link me-2" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees-pane" type="button" role="tab" aria-controls="employees-pane" aria-selected="false">
-                        <i class="bi bi-people-fill me-1"></i> Manage Employees
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link me-2" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance-pane" type="button" role="tab" aria-controls="attendance-pane" aria-selected="false">
-                        <i class="bi bi-calendar-check-fill me-1"></i> Attendance Tracker
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link me-2" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects-pane" type="button" role="tab" aria-controls="projects-pane" aria-selected="false">
-                        <i class="bi bi-gear-fill me-1"></i> Deploy Project
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers-pane" type="button" role="tab" aria-controls="customers-pane" aria-selected="false">
-                        <i class="bi bi-person-badge-fill me-1"></i> Clients & Customers
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="complaints-tab" data-bs-toggle="tab" data-bs-target="#complaints-pane" type="button" role="tab" aria-controls="complaints-pane" aria-selected="false">
-                        <i class="bi bi-chat-square-text-fill me-1"></i> Complaints Inbox 
-                        {% if pending_complaints_count > 0 %}
-                            <span class="badge bg-danger ms-1 animate-pulse" style="font-size: 0.65rem;">{{ pending_complaints_count }}</span>
-                        {% endif %}
-                    </button>
-                </li>
-
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link ms-2" id="quotations-tab" data-bs-toggle="tab" data-bs-target="#quotations-pane" type="button" role="tab" aria-controls="quotations-pane" aria-selected="false">
-                        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Quotations
-                    </button>
-                </li>
-            </ul>
+            <!-- Tabs layout handled in responsive sidebar -->
 
             <hr class="border-secondary mb-4" style="opacity: 0.15;">
 
@@ -1391,6 +1363,13 @@
                 <!-- Tab 9: Quotations -->
                 <div class="tab-pane fade" id="quotations-pane" role="tabpanel" aria-labelledby="quotations-tab">
                     {% include 'core/quotations_tab_content.html' %}
+                </div>
+
+                <!-- Tab 10: Project Expenses -->
+                <div class="tab-pane fade" id="expenses-pane" role="tabpanel" aria-labelledby="expenses-tab">
+                    <div class="card glass-card p-4 border-0">
+                        {% include 'core/expenses_tab_content.html' %}
+                    </div>
                 </div>
 
             </div>

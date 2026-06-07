@@ -9,7 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 from django.utils import timezone
 
-from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense
 from .forms import (
     CustomerSignUpForm, 
     StaffCreationForm, 
@@ -23,7 +23,8 @@ from .forms import (
     EmployeeCreationForm,
     EmployeeEditForm,
     ComplaintForm,
-    QuotationForm
+    QuotationForm,
+    ProjectExpenseForm
 )
 
 def login_view(request):
@@ -149,6 +150,10 @@ def customer_dashboard(request):
     complaints = Complaint.objects.filter(customer=request.user).order_by('-id')
     complaint_form = ComplaintForm()
 
+    # Get project expenses for client
+    expenses = ProjectExpense.objects.filter(project__customer=request.user).order_by('-date', '-id')
+    total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0.00
+
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'raise_complaint':
@@ -167,6 +172,8 @@ def customer_dashboard(request):
         'has_project': active_project is not None,
         'complaints': complaints,
         'complaint_form': complaint_form,
+        'expenses': expenses,
+        'total_expenses': total_expenses,
     }
     return render(request, 'core/customer_dashboard.html', context)
 
@@ -223,14 +230,18 @@ def staff_dashboard(request):
             form.save()
             messages.success(request, f"Updated progress for project '{project.title}' successfully!")
             return redirect('staff_dashboard')
-    else:
-        # Prepopulate updates forms for active projects
-        forms_list = []
-        for proj in active_projects:
-            forms_list.append({
-                'project': proj,
-                'form': StaffProjectUpdateForm(instance=proj)
-            })
+    # Prepopulate updates forms for active projects
+    forms_list = []
+    for proj in active_projects:
+        forms_list.append({
+            'project': proj,
+            'form': StaffProjectUpdateForm(instance=proj)
+        })
+
+    # Project Expenses
+    expenses = ProjectExpense.objects.filter(project__staff_incharge=staff_user).order_by('-date', '-id')
+    expense_projects = SolarInstallationProject.objects.filter(staff_incharge=staff_user).order_by('-id')
+    total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0.00
 
     context = {
         'active_clients_count': active_clients_count,
@@ -247,6 +258,9 @@ def staff_dashboard(request):
         'rating_pct_monthly': rating_pct_monthly,
         'calculated_salary_monthly': calculated_salary_monthly,
         'current_month_name': now.strftime('%B'),
+        'expenses': expenses,
+        'expense_projects': expense_projects,
+        'total_expenses': total_expenses,
     }
     return render(request, 'core/staff_dashboard.html', context)
 
@@ -594,6 +608,10 @@ def admin_dashboard(request):
     pending_complaints = Complaint.objects.filter(status='PENDING').order_by('-created_at')
     resolved_complaints = Complaint.objects.filter(status='RESOLVED').order_by('-resolved_at')
     pending_complaints_count = pending_complaints.count()
+    # Project Expenses
+    expenses = ProjectExpense.objects.all().order_by('-date', '-id')
+    expense_projects = SolarInstallationProject.objects.all().order_by('-id')
+    total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0.00
 
     context = {
         'total_clients': total_clients,
@@ -623,6 +641,11 @@ def admin_dashboard(request):
         # Worker search
         'worker_search': worker_search,
         'current_month_name': timezone.now().strftime('%B'),
+        
+        # Project Expenses
+        'expenses': expenses,
+        'expense_projects': expense_projects,
+        'total_expenses': total_expenses,
     }
     return render(request, 'core/admin_dashboard.html', context)
 
@@ -996,6 +1019,10 @@ def superuser_dashboard(request):
     pending_complaints = Complaint.objects.filter(status='PENDING').order_by('-created_at')
     resolved_complaints = Complaint.objects.filter(status='RESOLVED').order_by('-resolved_at')
     pending_complaints_count = pending_complaints.count()
+    # Project Expenses
+    expenses = ProjectExpense.objects.all().order_by('-date', '-id')
+    expense_projects = SolarInstallationProject.objects.all().order_by('-id')
+    total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0.00
 
     context = {
         'total_revenue': total_revenue,
@@ -1042,6 +1069,11 @@ def superuser_dashboard(request):
         # Worker search
         'worker_search': worker_search,
         'current_month_name': timezone.now().strftime('%B'),
+        
+        # Project Expenses
+        'expenses': expenses,
+        'expense_projects': expense_projects,
+        'total_expenses': total_expenses,
     }
     return render(request, 'core/superuser_dashboard.html', context)
 
@@ -1291,5 +1323,69 @@ def view_quotation_proposal_view(request, quote_id):
         'material_items': [item.strip() for item in quotation.material_breakdown.split('\n') if item.strip()] if quotation.material_breakdown else [],
     }
     return render(request, 'core/quotation_proposal_print.html', context)
+
+
+@login_required
+def add_expense_view(request):
+    if request.user.role not in ['ADMIN', 'SUPERUSER', 'STAFF'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Unauthorized to manage project expenses.")
+        
+    if request.method == 'POST':
+        form = ProjectExpenseForm(request.POST, user=request.user)
+        if form.is_valid():
+            expense = form.save(commit=False)
+            expense.created_by = request.user
+            # Double check permission for staff
+            if request.user.role == 'STAFF' and expense.project.staff_incharge != request.user:
+                return HttpResponseForbidden("Access Denied: You cannot add expenses to a project you are not in charge of.")
+            expense.save()
+            messages.success(request, f"Project expense '{expense.title}' of ₹{expense.amount} added successfully!")
+        else:
+            errors_str = " ".join([f"{k}: {v[0]}" for k, v in form.errors.items()])
+            messages.error(request, f"Failed to add expense: {errors_str}")
+            
+    next_url = request.META.get('HTTP_REFERER', 'dashboard')
+    return redirect(next_url)
+
+
+@login_required
+def edit_expense_view(request, expense_id):
+    if request.user.role not in ['ADMIN', 'SUPERUSER', 'STAFF'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Unauthorized to manage project expenses.")
+        
+    expense = get_object_or_404(ProjectExpense, id=expense_id)
+    # Double check permission for staff
+    if request.user.role == 'STAFF' and expense.project.staff_incharge != request.user:
+        return HttpResponseForbidden("Access Denied: You cannot manage expenses for a project you are not in charge of.")
+        
+    if request.method == 'POST':
+        form = ProjectExpenseForm(request.POST, instance=expense, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Project expense '{expense.title}' updated successfully!")
+        else:
+            errors_str = " ".join([f"{k}: {v[0]}" for k, v in form.errors.items()])
+            messages.error(request, f"Failed to update expense: {errors_str}")
+            
+    next_url = request.META.get('HTTP_REFERER', 'dashboard')
+    return redirect(next_url)
+
+
+@login_required
+def delete_expense_view(request, expense_id):
+    if request.user.role not in ['ADMIN', 'SUPERUSER', 'STAFF'] and not request.user.is_superuser:
+        return HttpResponseForbidden("Access Denied: Unauthorized to manage project expenses.")
+        
+    expense = get_object_or_404(ProjectExpense, id=expense_id)
+    # Double check permission for staff
+    if request.user.role == 'STAFF' and expense.project.staff_incharge != request.user:
+        return HttpResponseForbidden("Access Denied: You cannot delete expenses for a project you are not in charge of.")
+        
+    expense.delete()
+    messages.success(request, "Project expense deleted successfully!")
+    
+    next_url = request.META.get('HTTP_REFERER', 'dashboard')
+    return redirect(next_url)
+
 
 

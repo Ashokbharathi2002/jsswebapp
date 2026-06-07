@@ -1,5 +1,5 @@
 from django import forms
-from .models import CustomUser, SolarInstallationProject, Complaint, Quotation
+from .models import CustomUser, SolarInstallationProject, Complaint, Quotation, ProjectExpense
 
 class CustomerSignUpForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
@@ -297,3 +297,25 @@ class QuotationForm(forms.ModelForm):
         if not customer and not lead_name:
             raise forms.ValidationError("Please select a registered customer OR enter a lead name for unregistered clients.")
         return cleaned_data
+
+
+class ProjectExpenseForm(forms.ModelForm):
+    class Meta:
+        model = ProjectExpense
+        fields = ['project', 'title', 'amount', 'date', 'notes']
+        widgets = {
+            'project': forms.Select(attrs={'class': 'form-select'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter expense title (e.g. Copper wiring purchase)'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'}),
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Enter additional notes...'}),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            if user.role == 'STAFF':
+                self.fields['project'].queryset = SolarInstallationProject.objects.filter(staff_incharge=user)
+            elif user.role in ['ADMIN', 'SUPERUSER'] or user.is_superuser:
+                self.fields['project'].queryset = SolarInstallationProject.objects.all()
+

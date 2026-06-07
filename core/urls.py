@@ -33,5 +33,10 @@ urlpatterns = [
     path('quotations/edit/<int:quote_id>/', views.edit_quotation_view, name='edit_quotation'),
     path('quotations/delete/<int:quote_id>/', views.delete_quotation_view, name='delete_quotation'),
     path('quotations/view/<int:quote_id>/', views.view_quotation_proposal_view, name='view_quotation_proposal'),
+    
+    # Expenses CRUD
+    path('expenses/add/', views.add_expense_view, name='add_expense'),
+    path('expenses/edit/<int:expense_id>/', views.edit_expense_view, name='edit_expense'),
+    path('expenses/delete/<int:expense_id>/', views.delete_expense_view, name='delete_expense'),
 ]
 

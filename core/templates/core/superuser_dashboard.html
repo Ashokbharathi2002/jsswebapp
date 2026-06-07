@@ -2,24 +2,46 @@
 
 {% block title %}Super User Dashboard | Jothi Solar Solutions{% endblock %}
 
+{% block sidebar %}
+<div class="nav flex-column sidebar-nav" id="superuserTabs" role="tablist" aria-orientation="vertical">
+    <button class="nav-link active text-start" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
+        <i class="bi bi-cpu-fill me-2"></i>System Overview
+    </button>
+    <button class="nav-link text-start" id="admins-tab" data-bs-toggle="tab" data-bs-target="#admins" type="button" role="tab" aria-controls="admins" aria-selected="false">
+        <i class="bi bi-shield-fill-check me-2"></i>Admins
+    </button>
+    <button class="nav-link text-start" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff" type="button" role="tab" aria-controls="staff" aria-selected="false">
+        <i class="bi bi-person-workspace me-2"></i>Staff & Leads
+    </button>
+    <button class="nav-link text-start" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab" aria-controls="employees" aria-selected="false">
+        <i class="bi bi-people-fill me-2"></i>Employees
+    </button>
+    <button class="nav-link text-start" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab" aria-controls="attendance" aria-selected="false">
+        <i class="bi bi-calendar-check-fill me-2"></i>Attendance Tracker
+    </button>
+    <button class="nav-link text-start" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" aria-controls="customers" aria-selected="false">
+        <i class="bi bi-person-badge-fill me-2"></i>Customers
+    </button>
+    <button class="nav-link text-start" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects" type="button" role="tab" aria-controls="projects" aria-selected="false">
+        <i class="bi bi-sun-fill me-2"></i>Projects & Milestones
+    </button>
+    <button class="nav-link text-start d-flex justify-content-between align-items-center" id="complaints-tab" data-bs-toggle="tab" data-bs-target="#complaints" type="button" role="tab" aria-controls="complaints" aria-selected="false">
+        <span><i class="bi bi-chat-square-text-fill me-2"></i>Complaints Inbox</span>
+        {% if pending_complaints_count > 0 %}
+            <span class="badge bg-danger animate-pulse" style="font-size: 0.65rem;">{{ pending_complaints_count }}</span>
+        {% endif %}
+    </button>
+    <button class="nav-link text-start" id="quotations-tab" data-bs-toggle="tab" data-bs-target="#quotations" type="button" role="tab" aria-controls="quotations" aria-selected="false">
+        <i class="bi bi-file-earmark-spreadsheet me-2"></i>Quotations
+    </button>
+    <button class="nav-link text-start" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses" type="button" role="tab" aria-controls="expenses" aria-selected="false">
+        <i class="bi bi-cash-coin me-2"></i>Project Expenses
+    </button>
+</div>
+{% endblock %}
+
 {% block extra_css %}
 <style>
-    .nav-tabs .nav-link {
-        color: var(--text-secondary);
-        font-weight: 600;
-        border: none !important;
-        border-bottom: 3px solid transparent !important;
-        transition: all 0.2s ease;
-        background-color: transparent !important;
-    }
-    .nav-tabs .nav-link.active {
-        color: var(--accent-gold) !important;
-        border-bottom: 3px solid var(--accent-gold) !important;
-        text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
-    }
-    .nav-tabs .nav-link:hover {
-        color: var(--text-primary) !important;
-    }
     .table-responsive {
         background-color: rgba(5, 8, 17, 0.4);
         border-radius: 12px;
@@ -127,59 +149,6 @@
         </div>
     </div>
 </div>
-
-<!-- Tabs Control Navigation -->
-<ul class="nav nav-tabs border-bottom-0 mb-4 g-2" id="superuserTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active px-4 py-2" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
-            <i class="bi bi-cpu-fill me-2"></i>System Overview
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link px-4 py-2" id="admins-tab" data-bs-toggle="tab" data-bs-target="#admins" type="button" role="tab" aria-controls="admins" aria-selected="false">
-            <i class="bi bi-shield-fill-check me-2"></i>Admins
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link px-4 py-2" id="staff-tab" data-bs-toggle="tab" data-bs-target="#staff" type="button" role="tab" aria-controls="staff" aria-selected="false">
-            <i class="bi bi-person-workspace me-2"></i>Staff & Leads
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link px-4 py-2" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab" aria-controls="employees" aria-selected="false">
-            <i class="bi bi-people-fill me-2"></i>Employees
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link px-4 py-2" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab" aria-controls="attendance" aria-selected="false">
-            <i class="bi bi-calendar-check-fill me-2"></i>Attendance Tracker
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link px-4 py-2" id="customers-tab" data-bs-toggle="tab" data-bs-target="#customers" type="button" role="tab" aria-controls="customers" aria-selected="false">
-            <i class="bi bi-person-badge-fill me-2"></i>Customers
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link px-4 py-2" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects" type="button" role="tab" aria-controls="projects" aria-selected="false">
-            <i class="bi bi-sun-fill me-2"></i>Projects & Milestones
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link px-4 py-2" id="complaints-tab" data-bs-toggle="tab" data-bs-target="#complaints" type="button" role="tab" aria-controls="complaints" aria-selected="false">
-            <i class="bi bi-chat-square-text-fill me-2"></i>Complaints Inbox
-            {% if pending_complaints_count > 0 %}
-                <span class="badge bg-danger ms-1 animate-pulse" style="font-size: 0.65rem;">{{ pending_complaints_count }}</span>
-            {% endif %}
-        </button>
-    </li>
-
-    <li class="nav-item" role="presentation">
-        <button class="nav-link px-4 py-2" id="quotations-tab" data-bs-toggle="tab" data-bs-target="#quotations" type="button" role="tab" aria-controls="quotations" aria-selected="false">
-            <i class="bi bi-file-earmark-spreadsheet me-2"></i>Quotations
-        </button>
-    </li>
-</ul>
 
 <!-- Tabs Contents -->
 <div class="tab-content" id="superuserTabsContent">
@@ -1752,6 +1721,13 @@
         <div class="tab-pane fade" id="quotations" role="tabpanel" aria-labelledby="quotations-tab">
             <div class="card glass-card p-4 border-0 animate-fade-in">
                 {% include 'core/quotations_tab_content.html' %}
+            </div>
+        </div>
+
+        <!-- TAB 11: PROJECT EXPENSES -->
+        <div class="tab-pane fade" id="expenses" role="tabpanel" aria-labelledby="expenses-tab">
+            <div class="card glass-card p-4 border-0 animate-fade-in">
+                {% include 'core/expenses_tab_content.html' %}
             </div>
         </div>
 
