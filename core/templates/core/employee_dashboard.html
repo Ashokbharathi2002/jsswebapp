@@ -7,6 +7,9 @@
     <button class="nav-link active text-start" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview-pane" type="button" role="tab" aria-controls="overview-pane" aria-selected="true">
         <i class="bi bi-speedometer2 me-2"></i> Employee Hub Overview
     </button>
+    <button class="nav-link text-start" id="leaves-tab" data-bs-toggle="tab" data-bs-target="#leaves-pane" type="button" role="tab" aria-controls="leaves-pane" aria-selected="false">
+        <i class="bi bi-calendar-range me-2"></i> Leave Requests
+    </button>
 </div>
 {% endblock %}
 
@@ -197,6 +200,104 @@
 
 </div> <!-- Close Overview Pane -->
 
+<!-- Leave Requests Pane -->
+<div class="tab-pane fade" id="leaves-pane" role="tabpanel" aria-labelledby="leaves-tab">
+    <div class="row g-4">
+        <!-- Leave Request Form -->
+        <div class="col-lg-5">
+            <div class="card glass-card p-4 border-0">
+                <h5 class="fw-bold text-white mb-3"><i class="bi bi-plus-circle text-gradient-gold me-2"></i> Request Leave</h5>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="request_leave">
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-white small">Leave Type</label>
+                        {{ leave_form.leave_type }}
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-white small">Start Date</label>
+                            {{ leave_form.start_date }}
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-white small">End Date</label>
+                            {{ leave_form.end_date }}
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-white small">Reason</label>
+                        {{ leave_form.reason }}
+                    </div>
+                    <button type="submit" class="btn btn-gold w-100 text-white">
+                        <i class="bi bi-send me-1"></i> Submit Request
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Leave Request History -->
+        <div class="col-lg-7">
+            <div class="card glass-card p-4 border-0">
+                <h5 class="fw-bold text-white mb-3"><i class="bi bi-clock-history text-gradient-cyan me-2"></i> Request History</h5>
+                {% if leave_requests %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle border-0 small">
+                            <thead>
+                                <tr class="text-secondary">
+                                    <th>Type</th>
+                                    <th>Dates</th>
+                                    <th>Status</th>
+                                    <th>Approved By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for leave in leave_requests %}
+                                    <tr>
+                                        <td class="fw-bold text-white">{{ leave.get_leave_type_display }}</td>
+                                        <td>
+                                            <div class="small">{{ leave.start_date|date:"M d, Y" }}</div>
+                                            <div class="text-secondary" style="font-size: 0.75rem;">to {{ leave.end_date|date:"M d, Y" }}</div>
+                                        </td>
+                                        <td>
+                                            {% if leave.status == 'PENDING' %}
+                                                <span class="badge bg-warning bg-opacity-20 text-warning border border-warning px-2 py-1">Pending</span>
+                                            {% elif leave.status == 'APPROVED' %}
+                                                <span class="badge bg-success bg-opacity-20 text-success border border-success px-2 py-1">Approved</span>
+                                            {% else %}
+                                                <span class="badge bg-danger bg-opacity-20 text-danger border border-danger px-2 py-1">Rejected</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-secondary">
+                                            {% if leave.approved_by %}
+                                                {{ leave.approved_by.username }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% if leave.reason %}
+                                        <tr class="bg-black bg-opacity-10">
+                                            <td colspan="4" class="text-secondary-50 py-1" style="font-size: 0.75rem; border-top: none;">
+                                                <span class="fw-semibold text-secondary">Reason:</span> {{ leave.reason }}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-calendar2-x text-secondary fs-1 mb-3"></i>
+                        <h6 class="text-white fw-bold">No Leave Requests Found</h6>
+                        <p class="text-secondary small mb-0">Your submitted leave requests will appear here.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 
 </div> <!-- Close Tab Content -->
 {% endblock %}

@@ -347,6 +347,24 @@
                         <i id="themeToggleIcon" class="bi bi-moon-fill"></i>
                     </button>
                     {% if request.user.is_authenticated %}
+                        <!-- Notifications Dropdown -->
+                        <div class="dropdown me-3">
+                            <button class="btn btn-outline-gold btn-sm border-0 position-relative p-1" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications" style="width: 32px; height: 32px; border-radius: 50%;">
+                                <i class="bi bi-bell-fill fs-5"></i>
+                                <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.65rem; padding: 0.25em 0.5em;">
+                                    0
+                                </span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end glass-card p-0 text-white" aria-labelledby="notificationDropdown" id="notificationMenu" style="width: 320px; max-height: 400px; overflow-y: auto; background-color: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                                <div class="px-3 py-2 border-bottom border-white-50 border-opacity-10 d-flex justify-content-between align-items-center bg-black bg-opacity-30">
+                                    <h6 class="mb-0 fw-bold small"><i class="bi bi-bell-fill me-1 text-gradient-gold"></i>Notifications</h6>
+                                    <button class="btn btn-link btn-sm text-gradient-gold p-0 text-decoration-none" id="markAllReadBtn" style="font-size: 0.75rem;">Mark all as read</button>
+                                </div>
+                                <div id="notificationList" class="py-1">
+                                    <div class="text-center py-4 text-secondary small">Loading notifications...</div>
+                                </div>
+                            </ul>
+                        </div>
                         <div class="d-flex align-items-center me-3">
                             <div class="bg-warning text-dark rounded-circle metric-badge me-2 d-flex align-items-center justify-content-center fw-bold fs-6" style="width: 32px; height: 32px; margin-right: 0px !important;">
                                 {{ request.user.profile_picture_initials }}
@@ -546,6 +564,220 @@
             }
         });
     </script>
+    
+    {% if request.user.is_authenticated %}
+    <!-- Toast Container for Real-time Push Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;"></div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const CSRF_TOKEN = '{{ csrf_token }}';
+            const badge = document.getElementById('notificationBadge');
+            const list = document.getElementById('notificationList');
+            const markAllBtn = document.getElementById('markAllReadBtn');
+            
+            let knownNotificationIds = new Set();
+            let isFirstLoad = true;
+            
+            function playChime() {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioCtx.state === 'suspended') {
+                        return;
+                    }
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+                    gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.08);
+                    
+                    setTimeout(() => {
+                        const osc2 = audioCtx.createOscillator();
+                        const gain2 = audioCtx.createGain();
+                        osc2.connect(gain2);
+                        gain2.connect(audioCtx.destination);
+                        osc2.type = 'sine';
+                        osc2.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+                        gain2.gain.setValueAtTime(0.02, audioCtx.currentTime);
+                        osc2.start();
+                        osc2.stop(audioCtx.currentTime + 0.12);
+                    }, 100);
+                } catch (e) {
+                }
+            }
+            
+            function showToast(n) {
+                const container = document.querySelector('.toast-container');
+                if (!container) return;
+                
+                let iconClass = 'bi-info-circle-fill text-info';
+                if (n.type === 'SUCCESS') iconClass = 'bi-check-circle-fill text-success';
+                else if (n.type === 'ALERT') iconClass = 'bi-exclamation-triangle-fill text-danger';
+                else if (n.type === 'ACTIVITY') iconClass = 'bi-activity text-primary';
+                
+                const toastId = 'toast-' + n.id;
+                const toastHtml = `
+                    <div id="${toastId}" class="toast glass-card border-0 text-white" role="alert" aria-live="assertive" aria-atomic="true" style="background: rgba(10, 14, 26, 0.95); min-width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                        <div class="toast-header border-bottom border-white-50 border-opacity-10 text-white" style="background: transparent;">
+                            <i class="bi ${iconClass} me-2 fs-5"></i>
+                            <strong class="me-auto fw-bold text-white">${n.title}</strong>
+                            <small class="text-white-50">just now</small>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body text-secondary-50 small" style="white-space: normal; word-break: break-word;">
+                            ${n.message}
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', toastHtml);
+                const toastEl = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastEl, { delay: 8000 });
+                toast.show();
+                
+                toastEl.addEventListener('hidden.bs.toast', () => {
+                    toastEl.remove();
+                });
+            }
+            
+            function fetchNotifications() {
+                fetch("{% url 'notification_api_unread' %}")
+                    .then(res => res.json())
+                    .then(data => {
+                        const count = data.count;
+                        
+                        // Update Badge
+                        if (count > 0) {
+                            badge.textContent = count;
+                            badge.classList.remove('d-none');
+                        } else {
+                            badge.classList.add('d-none');
+                        }
+                        
+                        // Track new ones to show Toast and chime
+                        let hasNew = false;
+                        data.notifications.forEach(n => {
+                            if (!knownNotificationIds.has(n.id)) {
+                                knownNotificationIds.add(n.id);
+                                if (!isFirstLoad) {
+                                    showToast(n);
+                                    hasNew = true;
+                                }
+                            }
+                        });
+                        
+                        if (hasNew && !isFirstLoad) {
+                            playChime();
+                        }
+                        isFirstLoad = false;
+                        
+                        // Build List
+                        if (count === 0) {
+                            list.innerHTML = '<li><div class="text-center py-4 text-secondary small">No new notifications</div></li>';
+                        } else {
+                            let html = '';
+                            data.notifications.forEach(n => {
+                                let iconClass = 'bi-info-circle-fill text-info';
+                                if (n.type === 'SUCCESS') iconClass = 'bi-check-circle-fill text-success';
+                                else if (n.type === 'ALERT') iconClass = 'bi-exclamation-triangle-fill text-danger';
+                                else if (n.type === 'ACTIVITY') iconClass = 'bi-activity text-primary';
+                                
+                                html += `
+                                    <li class="px-3 py-2 border-bottom border-white-50 border-opacity-5 position-relative notification-item" data-id="${n.id}">
+                                        <div class="d-flex align-items-start">
+                                            <i class="bi ${iconClass} me-2 mt-1"></i>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between">
+                                                    <strong class="small text-white leading-tight">${n.title}</strong>
+                                                    <button class="btn-close btn-close-white p-0 read-single-btn" data-id="${n.id}" type="button" aria-label="Dismiss" style="font-size: 0.65rem;"></button>
+                                                </div>
+                                                <div class="text-secondary small mt-1" style="font-size: 0.75rem; white-space: normal; word-break: break-word;">${n.message}</div>
+                                                <small class="text-white-50 d-block mt-1" style="font-size: 0.65rem;">${n.created_at}</small>
+                                            </div>
+                                        </div>
+                                    </li>
+                                `;
+                            });
+                            list.innerHTML = html;
+                            
+                            // Bind click for single read
+                            list.querySelectorAll('.read-single-btn').forEach(btn => {
+                                btn.addEventListener('click', function(e) {
+                                    e.stopPropagation();
+                                    const id = this.getAttribute('data-id');
+                                    markAsRead(id);
+                                });
+                            });
+                        }
+                    })
+                    .catch(err => console.error("Error fetching notifications:", err));
+            }
+            
+            function markAsRead(id) {
+                fetch(`/notifications/read/${id}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const item = list.querySelector(`.notification-item[data-id="${id}"]`);
+                        if (item) {
+                            item.style.transition = "all 0.3s ease";
+                            item.style.opacity = "0";
+                            item.style.transform = "translateX(20px)";
+                            setTimeout(() => {
+                                fetchNotifications();
+                            }, 300);
+                        } else {
+                            fetchNotifications();
+                        }
+                    }
+                });
+            }
+            
+            function markAllAsRead() {
+                fetch("{% url 'mark_all_notifications_read' %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        list.style.transition = "all 0.3s ease";
+                        list.style.opacity = "0";
+                        setTimeout(() => {
+                            list.style.opacity = "1";
+                            fetchNotifications();
+                        }, 300);
+                    }
+                });
+            }
+            
+            if (markAllBtn) {
+                markAllBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    markAllAsRead();
+                });
+            }
+            
+            // Initial fetch and interval
+            fetchNotifications();
+            setInterval(fetchNotifications, 10000); // Poll every 10 seconds
+        });
+    </script>
+    {% endif %}
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

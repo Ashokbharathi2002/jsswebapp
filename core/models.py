@@ -242,6 +242,7 @@ class LoginLog(models.Model):
     ip_address = models.GenericIPAddressField(blank=True, null=True)
     user_agent = models.TextField(blank=True, null=True)
     login_time = models.DateTimeField(auto_now_add=True)
+    logout_time = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ['-login_time']
@@ -250,6 +251,85 @@ class LoginLog(models.Model):
         return f"{self.user.username} logged in at {self.login_time}"
 
 
+class LeaveRequest(models.Model):
+    LEAVE_TYPES = (
+        ('CASUAL', 'Casual Leave'),
+        ('SICK', 'Sick Leave'),
+        ('MEDICAL', 'Medical Leave'),
+        ('ANNUAL', 'Annual Leave'),
+        ('OTHER', 'Other'),
+    )
+    STATUS_CHOICES = (
+        ('PENDING', 'Pending Approval'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    )
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='leave_requests',
+        limit_choices_to=models.Q(role='STAFF') | models.Q(role='EMPLOYEE')
+    )
+    leave_type = models.CharField(max_length=20, choices=LEAVE_TYPES, default='CASUAL')
+    start_date = models.DateField()
+    end_date = models.DateField()
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    approved_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_leaves',
+        limit_choices_to=models.Q(role='ADMIN') | models.Q(role='SUPERUSER')
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.leave_type} ({self.get_status_display()})"
 
 
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('INFO', 'Information'),
+        ('ACTIVITY', 'Activity Log'),
+        ('ALERT', 'Alert / Action Required'),
+        ('SUCCESS', 'Success Announcement'),
+    )
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='INFO')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    user = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.CASCADE, 
+        related_name='notifications',
+        null=True,
+        blank=True,
+        help_text="The recipient user. Leave empty for a broadcast to all users."
+    )
+    is_broadcast = models.BooleanField(default=False, help_text="True if this is a broadcast to everyone.")
+    
+    class Meta:
+        ordering = ['-created_at']
+        
+    def __str__(self):
+        recipient = "ALL USERS" if self.is_broadcast else (self.user.username if self.user else "System")
+        return f"[{self.notification_type}] {self.title} to {recipient}"
 
+
+class NotificationRead(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='read_notifications')
+    notification = models.ForeignKey(Notification, on_delete=models.CASCADE, related_name='reads')
+    read_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('user', 'notification')
+
+    def __str__(self):
+        return f"{self.user.username} read {self.notification.title}"

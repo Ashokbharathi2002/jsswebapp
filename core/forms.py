@@ -1,5 +1,5 @@
 from django import forms
-from .models import CustomUser, SolarInstallationProject, Complaint, Quotation, ProjectExpense
+from .models import CustomUser, SolarInstallationProject, Complaint, Quotation, ProjectExpense, LeaveRequest
 
 class CustomerSignUpForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
@@ -318,4 +318,25 @@ class ProjectExpenseForm(forms.ModelForm):
                 self.fields['project'].queryset = SolarInstallationProject.objects.filter(staff_incharge=user)
             elif user.role in ['ADMIN', 'SUPERUSER'] or user.is_superuser:
                 self.fields['project'].queryset = SolarInstallationProject.objects.all()
+
+
+class LeaveRequestForm(forms.ModelForm):
+    class Meta:
+        model = LeaveRequest
+        fields = ['leave_type', 'start_date', 'end_date', 'reason']
+        widgets = {
+            'leave_type': forms.Select(attrs={'class': 'form-select'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'reason': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Provide a reason for the leave...'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        if start_date and end_date and start_date > end_date:
+            raise forms.ValidationError("Start date cannot be after end date.")
+        return cleaned_data
+
 

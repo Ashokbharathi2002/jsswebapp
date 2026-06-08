@@ -1,6 +1,7 @@
 from django.urls import path
 from django.shortcuts import redirect
 from . import views
+from . import views_notifications
 
 urlpatterns = [
     # Homepage redirects to login
@@ -38,5 +39,12 @@ urlpatterns = [
     path('expenses/add/', views.add_expense_view, name='add_expense'),
     path('expenses/edit/<int:expense_id>/', views.edit_expense_view, name='edit_expense'),
     path('expenses/delete/<int:expense_id>/', views.delete_expense_view, name='delete_expense'),
+    
+    # Notifications APIs and views
+    path('notifications/api/unread/', views_notifications.notification_api_unread, name='notification_api_unread'),
+    path('notifications/read/<int:notification_id>/', views_notifications.mark_notification_read, name='mark_notification_read'),
+    path('notifications/read/all/', views_notifications.mark_all_notifications_read, name='mark_all_notifications_read'),
+    path('notifications/push/', views_notifications.push_notification_view, name='push_notification'),
 ]
+
 

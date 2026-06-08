@@ -213,9 +213,9 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
-# Session Expiration settings (1 day)
-SESSION_COOKIE_AGE = 86400  # 24 hours in seconds
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Persist session if browser closes, up to 1 day
+# Session Expiration settings (8 hours)
+SESSION_COOKIE_AGE = 28800  # 8 hours in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Persist session if browser closes, up to 8 hours
 SESSION_SAVE_EVERY_REQUEST = True  # Refresh session expiry on each request (sliding window)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

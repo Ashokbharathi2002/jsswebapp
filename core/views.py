@@ -9,7 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 from django.utils import timezone
 
-from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense, LoginLog
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense, LoginLog, LeaveRequest, Notification
 from .forms import (
     CustomerSignUpForm, 
     StaffCreationForm, 
@@ -24,7 +24,8 @@ from .forms import (
     EmployeeEditForm,
     ComplaintForm,
     QuotationForm,
-    ProjectExpenseForm
+    ProjectExpenseForm,
+    LeaveRequestForm
 )
 
 def login_view(request):
@@ -208,7 +209,7 @@ def staff_dashboard(request):
 
     # Load attendance records
     attendance_records = Attendance.objects.filter(user=staff_user).order_by('-date')
-    total_days = attendance_records.count()
+    total_days = attendance_records.exclude(status='LEAVE').count()
     present_days = attendance_records.filter(status='PRESENT').count()
     rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
 
@@ -216,20 +217,37 @@ def staff_dashboard(request):
 
     # Monthly
     now = timezone.now()
-    total_days_monthly = Attendance.objects.filter(user=staff_user, date__year=now.year, date__month=now.month).count()
+    total_days_monthly = Attendance.objects.filter(user=staff_user, date__year=now.year, date__month=now.month).exclude(status='LEAVE').count()
     present_days_monthly = Attendance.objects.filter(user=staff_user, status='PRESENT', date__year=now.year, date__month=now.month).count()
     rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
     calculated_salary_monthly = Decimal(float(staff_user.salary or 0.00) * (rating_pct_monthly / 100.0))
 
-    # Project updates processing (Staff updating progress/laborers/crew)
+    # Leave requests
+    leave_requests = LeaveRequest.objects.filter(user=staff_user).order_by('-created_at')
+    leave_form = LeaveRequestForm()
+
+    # Project updates or leave request processing
     if request.method == 'POST':
-        project_id = request.POST.get('project_id')
-        project = get_object_or_404(SolarInstallationProject, id=project_id, staff_incharge=staff_user)
-        form = StaffProjectUpdateForm(request.POST, instance=project)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f"Updated progress for project '{project.title}' successfully!")
-            return redirect('staff_dashboard')
+        action = request.POST.get('action')
+        if action == 'request_leave':
+            form = LeaveRequestForm(request.POST)
+            if form.is_valid():
+                leave = form.save(commit=False)
+                leave.user = staff_user
+                leave.save()
+                messages.success(request, "Leave request submitted successfully!")
+                return redirect('staff_dashboard')
+            else:
+                messages.error(request, "Failed to submit leave request. Please verify inputs.")
+        else:
+            project_id = request.POST.get('project_id')
+            project = get_object_or_404(SolarInstallationProject, id=project_id, staff_incharge=staff_user)
+            form = StaffProjectUpdateForm(request.POST, instance=project)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Updated progress for project '{project.title}' successfully!")
+                return redirect('staff_dashboard')
+
     # Prepopulate updates forms for active projects
     forms_list = []
     for proj in active_projects:
@@ -261,6 +279,8 @@ def staff_dashboard(request):
         'expenses': expenses,
         'expense_projects': expense_projects,
         'total_expenses': total_expenses,
+        'leave_requests': leave_requests,
+        'leave_form': leave_form,
     }
     return render(request, 'core/staff_dashboard.html', context)
 
@@ -281,7 +301,7 @@ def employee_dashboard(request):
     
     # Attendance metrics
     attendance_records = Attendance.objects.filter(user=employee_user).order_by('-date')
-    total_days = attendance_records.count()
+    total_days = attendance_records.exclude(status='LEAVE').count()
     present_days = attendance_records.filter(status='PRESENT').count()
     rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
 
@@ -289,10 +309,27 @@ def employee_dashboard(request):
 
     # Monthly
     now = timezone.now()
-    total_days_monthly = Attendance.objects.filter(user=employee_user, date__year=now.year, date__month=now.month).count()
+    total_days_monthly = Attendance.objects.filter(user=employee_user, date__year=now.year, date__month=now.month).exclude(status='LEAVE').count()
     present_days_monthly = Attendance.objects.filter(user=employee_user, status='PRESENT', date__year=now.year, date__month=now.month).count()
     rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
     calculated_salary_monthly = Decimal(float(employee_user.salary or 0.00) * (rating_pct_monthly / 100.0))
+
+    # Leave requests
+    leave_requests = LeaveRequest.objects.filter(user=employee_user).order_by('-created_at')
+    leave_form = LeaveRequestForm()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'request_leave':
+            form = LeaveRequestForm(request.POST)
+            if form.is_valid():
+                leave = form.save(commit=False)
+                leave.user = employee_user
+                leave.save()
+                messages.success(request, "Leave request submitted successfully!")
+                return redirect('employee_dashboard')
+            else:
+                messages.error(request, "Failed to submit leave request. Please verify inputs.")
     
     context = {
         'active_projects': active_projects,
@@ -303,6 +340,8 @@ def employee_dashboard(request):
         'rating_pct_monthly': rating_pct_monthly,
         'calculated_salary_monthly': calculated_salary_monthly,
         'current_month_name': now.strftime('%B'),
+        'leave_requests': leave_requests,
+        'leave_form': leave_form,
     }
     return render(request, 'core/employee_dashboard.html', context)
 
@@ -369,14 +408,14 @@ def admin_dashboard(request):
                 crew_details_list.append(f"{p.title}: {p.crew_details} ({p.laborers_count} laborers)")
 
         # Salary calculations
-        total_days = Attendance.objects.filter(user=staff).count()
+        total_days = Attendance.objects.filter(user=staff).exclude(status='LEAVE').count()
         present_days = Attendance.objects.filter(user=staff, status='PRESENT').count()
         rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
         calculated_salary_overall = Decimal(float(staff.salary or 0.00) * (rating_pct / 100.0))
 
         # Monthly
         now = timezone.now()
-        total_days_monthly = Attendance.objects.filter(user=staff, date__year=now.year, date__month=now.month).count()
+        total_days_monthly = Attendance.objects.filter(user=staff, date__year=now.year, date__month=now.month).exclude(status='LEAVE').count()
         present_days_monthly = Attendance.objects.filter(user=staff, status='PRESENT', date__year=now.year, date__month=now.month).count()
         rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
         calculated_salary_monthly = Decimal(float(staff.salary or 0.00) * (rating_pct_monthly / 100.0))
@@ -403,14 +442,14 @@ def admin_dashboard(request):
         ).exclude(status__in=['COMPLETED', 'PENDING_APPROVAL'])
 
         # Salary calculations
-        total_days = Attendance.objects.filter(user=emp).count()
+        total_days = Attendance.objects.filter(user=emp).exclude(status='LEAVE').count()
         present_days = Attendance.objects.filter(user=emp, status='PRESENT').count()
         rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
         calculated_salary_overall = Decimal(float(emp.salary or 0.00) * (rating_pct / 100.0))
 
         # Monthly
         now = timezone.now()
-        total_days_monthly = Attendance.objects.filter(user=emp, date__year=now.year, date__month=now.month).count()
+        total_days_monthly = Attendance.objects.filter(user=emp, date__year=now.year, date__month=now.month).exclude(status='LEAVE').count()
         present_days_monthly = Attendance.objects.filter(user=emp, status='PRESENT', date__year=now.year, date__month=now.month).count()
         rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
         calculated_salary_monthly = Decimal(float(emp.salary or 0.00) * (rating_pct_monthly / 100.0))
@@ -447,7 +486,7 @@ def admin_dashboard(request):
     # Attendance overall ratings
     attendance_stats = []
     for worker in workers:
-        total_days = Attendance.objects.filter(user=worker).count()
+        total_days = Attendance.objects.filter(user=worker).exclude(status='LEAVE').count()
         present_days = Attendance.objects.filter(user=worker, status='PRESENT').count()
         rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
         
@@ -455,7 +494,7 @@ def admin_dashboard(request):
         
         # Monthly
         now = timezone.now()
-        total_days_monthly = Attendance.objects.filter(user=worker, date__year=now.year, date__month=now.month).count()
+        total_days_monthly = Attendance.objects.filter(user=worker, date__year=now.year, date__month=now.month).exclude(status='LEAVE').count()
         present_days_monthly = Attendance.objects.filter(user=worker, status='PRESENT', date__year=now.year, date__month=now.month).count()
         rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
         calculated_salary_monthly = Decimal(float(worker.salary or 0.00) * (rating_pct_monthly / 100.0))
@@ -604,10 +643,40 @@ def admin_dashboard(request):
                 else:
                     messages.error(request, "Password cannot be empty.")
             return redirect('admin_dashboard')
+        elif action == 'approve_leave':
+            leave_id = request.POST.get('leave_id')
+            leave = get_object_or_404(LeaveRequest, id=leave_id)
+            leave.status = 'APPROVED'
+            leave.approved_by = request.user
+            leave.save()
+            from datetime import timedelta
+            current_date = leave.start_date
+            while current_date <= leave.end_date:
+                Attendance.objects.update_or_create(
+                    user=leave.user,
+                    date=current_date,
+                    defaults={'status': 'LEAVE', 'notes': f"Approved leave: {leave.get_leave_type_display()}"}
+                )
+                current_date += timedelta(days=1)
+            messages.success(request, f"Leave request for {leave.user.username} approved successfully!")
+            return redirect('admin_dashboard')
+        elif action == 'reject_leave':
+            leave_id = request.POST.get('leave_id')
+            leave = get_object_or_404(LeaveRequest, id=leave_id)
+            leave.status = 'REJECTED'
+            leave.approved_by = request.user
+            leave.save()
+            messages.success(request, f"Leave request for {leave.user.username} rejected.")
+            return redirect('admin_dashboard')
 
     pending_complaints = Complaint.objects.filter(status='PENDING').order_by('-created_at')
     resolved_complaints = Complaint.objects.filter(status='RESOLVED').order_by('-resolved_at')
     pending_complaints_count = pending_complaints.count()
+    
+    pending_leaves = LeaveRequest.objects.filter(status='PENDING').order_by('-created_at')
+    all_leaves = LeaveRequest.objects.all().order_by('-created_at')
+    pending_leaves_count = pending_leaves.count()
+    
     # Project Expenses
     expenses = ProjectExpense.objects.all().order_by('-date', '-id')
     expense_projects = SolarInstallationProject.objects.all().order_by('-id')
@@ -624,6 +693,9 @@ def admin_dashboard(request):
         'completed_installations': completed_installations,
         'pending_approvals_count': pending_approvals_count,
         'pending_customers': pending_users,
+        'pending_leaves': pending_leaves,
+        'pending_leaves_count': pending_leaves_count,
+        'all_leaves': all_leaves,
         'all_customers': customer_data_list,
         'staff_data_list': staff_data_list,
         'employees_data_list': employees_data_list,
@@ -655,6 +727,10 @@ def admin_dashboard(request):
         # Login Logs
         'login_logs_today': login_logs_today,
         'login_logs_all': login_logs_all,
+        
+        # Notifications Params
+        'active_users': CustomUser.objects.filter(is_approved=True, is_active=True).order_by('role', 'username'),
+        'recent_notifications': Notification.objects.all().order_by('-created_at')[:50],
     }
     return render(request, 'core/admin_dashboard.html', context)
 
@@ -706,14 +782,14 @@ def superuser_dashboard(request):
                 crew_details_list.append(f"{p.title}: {p.crew_details} ({p.laborers_count} laborers)")
 
         # Salary calculations
-        total_days = Attendance.objects.filter(user=staff).count()
+        total_days = Attendance.objects.filter(user=staff).exclude(status='LEAVE').count()
         present_days = Attendance.objects.filter(user=staff, status='PRESENT').count()
         rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
         calculated_salary_overall = Decimal(float(staff.salary or 0.00) * (rating_pct / 100.0))
 
         # Monthly
         now = timezone.now()
-        total_days_monthly = Attendance.objects.filter(user=staff, date__year=now.year, date__month=now.month).count()
+        total_days_monthly = Attendance.objects.filter(user=staff, date__year=now.year, date__month=now.month).exclude(status='LEAVE').count()
         present_days_monthly = Attendance.objects.filter(user=staff, status='PRESENT', date__year=now.year, date__month=now.month).count()
         rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
         calculated_salary_monthly = Decimal(float(staff.salary or 0.00) * (rating_pct_monthly / 100.0))
@@ -738,14 +814,14 @@ def superuser_dashboard(request):
         ).exclude(status__in=['COMPLETED', 'PENDING_APPROVAL'])
         
         # Salary calculations
-        total_days = Attendance.objects.filter(user=emp).count()
+        total_days = Attendance.objects.filter(user=emp).exclude(status='LEAVE').count()
         present_days = Attendance.objects.filter(user=emp, status='PRESENT').count()
         rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
         calculated_salary_overall = Decimal(float(emp.salary or 0.00) * (rating_pct / 100.0))
 
         # Monthly
         now = timezone.now()
-        total_days_monthly = Attendance.objects.filter(user=emp, date__year=now.year, date__month=now.month).count()
+        total_days_monthly = Attendance.objects.filter(user=emp, date__year=now.year, date__month=now.month).exclude(status='LEAVE').count()
         present_days_monthly = Attendance.objects.filter(user=emp, status='PRESENT', date__year=now.year, date__month=now.month).count()
         rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
         calculated_salary_monthly = Decimal(float(emp.salary or 0.00) * (rating_pct_monthly / 100.0))
@@ -798,7 +874,7 @@ def superuser_dashboard(request):
     # Attendance overall ratings
     attendance_stats = []
     for worker in workers:
-        total_days = Attendance.objects.filter(user=worker).count()
+        total_days = Attendance.objects.filter(user=worker).exclude(status='LEAVE').count()
         present_days = Attendance.objects.filter(user=worker, status='PRESENT').count()
         rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
 
@@ -806,7 +882,7 @@ def superuser_dashboard(request):
 
         # Monthly
         now = timezone.now()
-        total_days_monthly = Attendance.objects.filter(user=worker, date__year=now.year, date__month=now.month).count()
+        total_days_monthly = Attendance.objects.filter(user=worker, date__year=now.year, date__month=now.month).exclude(status='LEAVE').count()
         present_days_monthly = Attendance.objects.filter(user=worker, status='PRESENT', date__year=now.year, date__month=now.month).count()
         rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
         calculated_salary_monthly = Decimal(float(worker.salary or 0.00) * (rating_pct_monthly / 100.0))
@@ -964,6 +1040,49 @@ def superuser_dashboard(request):
             complaint.save()
             messages.success(request, f"Complaint by customer '{complaint.customer.username}' has been marked as resolved!")
             return redirect('superuser_dashboard')
+        elif action == 'approve_leave':
+            leave_id = request.POST.get('leave_id')
+            leave = get_object_or_404(LeaveRequest, id=leave_id)
+            leave.status = 'APPROVED'
+            leave.approved_by = request.user
+            leave.save()
+            from datetime import timedelta
+            current_date = leave.start_date
+            while current_date <= leave.end_date:
+                Attendance.objects.update_or_create(
+                    user=leave.user,
+                    date=current_date,
+                    defaults={'status': 'LEAVE', 'notes': f"Approved leave: {leave.get_leave_type_display()}"}
+                )
+                current_date += timedelta(days=1)
+            messages.success(request, f"Leave request for {leave.user.username} approved successfully!")
+            return redirect('superuser_dashboard')
+        elif action == 'reject_leave':
+            leave_id = request.POST.get('leave_id')
+            leave = get_object_or_404(LeaveRequest, id=leave_id)
+            leave.status = 'REJECTED'
+            leave.approved_by = request.user
+            leave.save()
+            messages.success(request, f"Leave request for {leave.user.username} rejected.")
+            return redirect('superuser_dashboard')
+        elif action == 'cancel_leave':
+            leave_id = request.POST.get('leave_id')
+            leave = get_object_or_404(LeaveRequest, id=leave_id)
+            if leave.status != 'APPROVED':
+                messages.error(request, "Only approved leaves can be cancelled.")
+            else:
+                leave.status = 'REJECTED'
+                leave.approved_by = request.user
+                leave.save()
+                # Remove the attendance records generated for the leave dates
+                Attendance.objects.filter(
+                    user=leave.user,
+                    date__range=(leave.start_date, leave.end_date),
+                    status='LEAVE'
+                ).delete()
+                messages.warning(request, f"Leave request for {leave.user.username} has been cancelled and corresponding attendance records removed.")
+            return redirect('superuser_dashboard')
+
 
         elif action == 'mark_attendance':
             date_str = request.POST.get('attendance_date')
@@ -1028,6 +1147,10 @@ def superuser_dashboard(request):
     pending_complaints = Complaint.objects.filter(status='PENDING').order_by('-created_at')
     resolved_complaints = Complaint.objects.filter(status='RESOLVED').order_by('-resolved_at')
     pending_complaints_count = pending_complaints.count()
+    
+    pending_leaves = LeaveRequest.objects.filter(status='PENDING').order_by('-created_at')
+    all_leaves = LeaveRequest.objects.all().order_by('-created_at')
+    pending_leaves_count = pending_leaves.count()
     # Project Expenses
     expenses = ProjectExpense.objects.all().order_by('-date', '-id')
     expense_projects = SolarInstallationProject.objects.all().order_by('-id')
@@ -1056,6 +1179,9 @@ def superuser_dashboard(request):
         'project_data_list': project_data_list,
         'pending_customers': pending_users,
         'pending_approvals_count': pending_approvals_count,
+        'pending_leaves': pending_leaves,
+        'pending_leaves_count': pending_leaves_count,
+        'all_leaves': all_leaves,
         
         # Blank forms for creation
         'admin_form': admin_form,
@@ -1092,6 +1218,10 @@ def superuser_dashboard(request):
         # Login Logs
         'login_logs_today': login_logs_today,
         'login_logs_all': login_logs_all,
+        
+        # Notifications Params
+        'active_users': CustomUser.objects.filter(is_approved=True, is_active=True).order_by('role', 'username'),
+        'recent_notifications': Notification.objects.all().order_by('-created_at')[:50],
     }
     return render(request, 'core/superuser_dashboard.html', context)
 
@@ -1208,13 +1338,13 @@ def export_salaries_csv(request):
     
     for worker in workers:
         # Overall rating
-        total_days = Attendance.objects.filter(user=worker).count()
+        total_days = Attendance.objects.filter(user=worker).exclude(status='LEAVE').count()
         present_days = Attendance.objects.filter(user=worker, status='PRESENT').count()
         rating_pct = (present_days / total_days * 100) if total_days > 0 else 100.0
         calculated_salary_overall = Decimal(float(worker.salary or 0.00) * (rating_pct / 100.0))
         
         # Monthly rating
-        total_days_monthly = Attendance.objects.filter(user=worker, date__year=now.year, date__month=now.month).count()
+        total_days_monthly = Attendance.objects.filter(user=worker, date__year=now.year, date__month=now.month).exclude(status='LEAVE').count()
         present_days_monthly = Attendance.objects.filter(user=worker, status='PRESENT', date__year=now.year, date__month=now.month).count()
         rating_pct_monthly = (present_days_monthly / total_days_monthly * 100) if total_days_monthly > 0 else 100.0
         calculated_salary_monthly = Decimal(float(worker.salary or 0.00) * (rating_pct_monthly / 100.0))

@@ -41,7 +41,8 @@
                             <th>User Details</th>
                             <th>IP Address</th>
                             <th>Device / Browser (User Agent)</th>
-                            <th>Time</th>
+                            <th>Login Time</th>
+                            <th>Logout Time</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -70,6 +71,16 @@
                                     <div class="text-white-50">{{ log.login_time|date:"M d, Y H:i" }}</div>
                                     <div class="text-secondary small" style="font-size: 0.7rem;">{{ log.login_time|timesince }} ago</div>
                                 </td>
+                                <td>
+                                    {% if log.logout_time %}
+                                        <div class="text-white-50">{{ log.logout_time|date:"M d, Y H:i" }}</div>
+                                        <div class="text-secondary small" style="font-size: 0.7rem;">Duration: {{ log.login_time|timesince:log.logout_time }}</div>
+                                    {% else %}
+                                        <span class="badge bg-success bg-opacity-20 text-success border border-success px-2 py-1" style="font-size: 0.7rem;">
+                                            <i class="bi bi-circle-fill me-1" style="font-size: 0.55rem; color: #10b981;"></i>Active
+                                        </span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -93,7 +104,8 @@
                             <th>User Details</th>
                             <th>IP Address</th>
                             <th>Device / Browser (User Agent)</th>
-                            <th>Time</th>
+                            <th>Login Time</th>
+                            <th>Logout Time</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -121,6 +133,16 @@
                                 <td>
                                     <div class="text-white-50">{{ log.login_time|date:"M d, Y H:i" }}</div>
                                     <div class="text-secondary small" style="font-size: 0.7rem;">{{ log.login_time|timesince }} ago</div>
+                                </td>
+                                <td>
+                                    {% if log.logout_time %}
+                                        <div class="text-white-50">{{ log.logout_time|date:"M d, Y H:i" }}</div>
+                                        <div class="text-secondary small" style="font-size: 0.7rem;">Duration: {{ log.login_time|timesince:log.logout_time }}</div>
+                                    {% else %}
+                                        <span class="badge bg-success bg-opacity-20 text-success border border-success px-2 py-1" style="font-size: 0.7rem;">
+                                            <i class="bi bi-circle-fill me-1" style="font-size: 0.55rem; color: #10b981;"></i>Active
+                                        </span>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}
