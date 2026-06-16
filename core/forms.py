@@ -1,5 +1,5 @@
 from django import forms
-from .models import CustomUser, SolarInstallationProject, Complaint, Quotation, ProjectExpense, LeaveRequest
+from .models import CustomUser, SolarInstallationProject, Complaint, Quotation, ProjectExpense, LeaveRequest, Inspection, Inverter
 
 class CustomerSignUpForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
@@ -204,6 +204,37 @@ class StaffProjectUpdateForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-select'}),
             'laborers_count': forms.NumberInput(attrs={'class': 'form-control'}),
             'crew_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class InverterForm(forms.ModelForm):
+    class Meta:
+        model = Inverter
+        fields = ['brand', 'model', 'serial_number', 'capacity']
+        widgets = {
+            'brand': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Sungrow'}),
+            'model': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. SG5.0RS'}),
+            'serial_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. SN12345678'}),
+            'capacity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'e.g. 5.00'}),
+        }
+
+
+class InspectionPerformForm(forms.ModelForm):
+    class Meta:
+        model = Inspection
+        fields = [
+            'panel_check', 'inverter_check', 'wiring_check', 
+            'mounting_check', 'performance_check', 
+            'has_issues', 'issue_details'
+        ]
+        widgets = {
+            'panel_check': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'inverter_check': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'wiring_check': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'mounting_check': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'performance_check': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'has_issues': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_has_issues'}),
+            'issue_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Describe any issues encountered during inspection...'}),
         }
 
 

@@ -13,6 +13,9 @@
     <button class="nav-link text-start" id="leaves-tab" data-bs-toggle="tab" data-bs-target="#leaves-pane" type="button" role="tab" aria-controls="leaves-pane" aria-selected="false">
         <i class="bi bi-calendar-range me-2"></i> Leave Requests
     </button>
+    <button class="nav-link text-start" id="inspections-tab" data-bs-toggle="tab" data-bs-target="#inspections-pane" type="button" role="tab" aria-controls="inspections-pane" aria-selected="false">
+        <i class="bi bi-shield-check me-2"></i> 6-Month Inspections
+    </button>
 </div>
 {% endblock %}
 
@@ -155,35 +158,81 @@
                                     </div>
 
                                     <!-- Progress & Laborer update form for Staff -->
-                                    <form method="POST" class="bg-dark p-4 rounded-4 border border-secondary-subtle" style="border-color: rgba(255, 255, 255, 0.08) !important;">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="project_id" value="{{ item.project.id }}">
-                                        
-                                        <h6 class="fw-bold text-gradient-gold mb-3"><i class="bi bi-pencil-square me-2"></i> Update Project Progress</h6>
-                                        
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label class="form-label text-white small fw-semibold">Milestone Status</label>
-                                                {{ item.form.status }}
-                                                <small class="text-secondary" style="font-size: 0.75rem;">Select current progress stage</small>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label class="form-label text-white small fw-semibold">On-site Helpers Count</label>
-                                                {{ item.form.laborers_count }}
-                                                <small class="text-secondary" style="font-size: 0.75rem;">Number of helpers working today</small>
-                                            </div>
+                                    <div class="row g-4 mt-1">
+                                        <!-- Left column: Progress tracker -->
+                                        <div class="col-md-6">
+                                            <form method="POST" class="bg-dark p-4 rounded-4 border border-secondary-subtle h-100" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="project_id" value="{{ item.project.id }}">
+                                                
+                                                <h6 class="fw-bold text-gradient-gold mb-3"><i class="bi bi-pencil-square me-2"></i> Update Project Progress</h6>
+                                                
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label text-white small fw-semibold">Milestone Status</label>
+                                                        {{ item.form.status }}
+                                                        <small class="text-secondary" style="font-size: 0.75rem;">Select current progress stage</small>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label text-white small fw-semibold">On-site Helpers Count</label>
+                                                        {{ item.form.laborers_count }}
+                                                        <small class="text-secondary" style="font-size: 0.75rem;">Number of helpers working today</small>
+                                                    </div>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label text-white small fw-semibold">Crew Details & Roster</label>
+                                                    {{ item.form.crew_details }}
+                                                    <small class="text-secondary" style="font-size: 0.75rem;">Names and responsibilities (e.g. John (Lead), EMP-1002 (Helper))</small>
+                                                </div>
+
+                                                <button type="submit" class="btn btn-gold btn-sm px-4">
+                                                    <i class="bi bi-save me-1"></i> Save Progress
+                                                </button>
+                                            </form>
                                         </div>
 
-                                        <div class="mb-3">
-                                            <label class="form-label text-white small fw-semibold">Crew Details & Roster</label>
-                                            {{ item.form.crew_details }}
-                                            <small class="text-secondary" style="font-size: 0.75rem;">Names and responsibilities (e.g. John (Lead), EMP-1002 (Helper))</small>
-                                        </div>
+                                        <!-- Right column: Inverter form -->
+                                        <div class="col-md-6">
+                                            <form method="POST" class="bg-dark p-4 rounded-4 border border-secondary-subtle h-100" style="border-color: rgba(255, 255, 255, 0.08) !important;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="edit_inverter">
+                                                <input type="hidden" name="project_id" value="{{ item.project.id }}">
 
-                                        <button type="submit" class="btn btn-gold btn-sm px-4">
-                                            <i class="bi bi-save me-1"></i> Save Changes
-                                        </button>
-                                    </form>
+                                                <h6 class="fw-bold text-gradient-gold mb-3"><i class="bi bi-cpu-fill me-2"></i> Update Inverter Specifications</h6>
+
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label text-white small fw-semibold">Inverter Brand</label>
+                                                        {{ item.inverter_form.brand }}
+                                                        <small class="text-secondary" style="font-size: 0.75rem;">e.g. Sungrow, Fronius</small>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label text-white small fw-semibold">Model / Spec</label>
+                                                        {{ item.inverter_form.model }}
+                                                        <small class="text-secondary" style="font-size: 0.75rem;">e.g. SG5.0RS</small>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label text-white small fw-semibold">Serial Number (S.No)</label>
+                                                        {{ item.inverter_form.serial_number }}
+                                                        <small class="text-secondary" style="font-size: 0.75rem;">e.g. SN12345678</small>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label text-white small fw-semibold">Capacity (kW)</label>
+                                                        {{ item.inverter_form.capacity }}
+                                                        <small class="text-secondary" style="font-size: 0.75rem;">e.g. 5.00</small>
+                                                    </div>
+                                                </div>
+
+                                                <button type="submit" class="btn btn-gold btn-sm px-4">
+                                                    <i class="bi bi-save me-1"></i> Save Inverter Specs
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
 
                                 </div>
                             </div>
@@ -414,9 +463,75 @@
                 {% endif %}
             </div>
         </div>
+        </div>
     </div>
-</div>
 
+    <!-- Inspections Pane (Staff Actionable) -->
+    <div class="tab-pane fade" id="inspections-pane" role="tabpanel" aria-labelledby="inspections-tab">
+        <div class="card glass-card p-4 border-0">
+            <h5 class="fw-bold text-white mb-2"><i class="bi bi-shield-check text-gradient-cyan me-2"></i> 6-Month Inspections</h5>
+            <p class="text-secondary small mb-4">View scheduled inspections, verify checklists, and log safety reviews for completed project sites.</p>
+
+            {% if inspections %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle border-0 small">
+                        <thead>
+                            <tr class="text-secondary">
+                                <th>Project</th>
+                                <th>Client</th>
+                                <th>Scheduled Date</th>
+                                <th>Performed Date</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for insp in inspections %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-white">{{ insp.project.title }}</div>
+                                        <div class="text-secondary-50" style="font-size: 0.75rem;">Inverter: {{ insp.project.inverter_brand }} ({{ insp.project.inverter_capacity }} kW)</div>
+                                    </td>
+                                    <td>{{ insp.project.customer.get_full_name|default:insp.project.customer.username }}</td>
+                                    <td class="fw-bold text-white">{{ insp.scheduled_date|date:"M d, Y" }}</td>
+                                    <td class="text-secondary-50">{{ insp.inspection_date|date:"M d, Y"|default:"-" }}</td>
+                                    <td>
+                                        {% if insp.status == 'COMPLETED' %}
+                                            {% if insp.has_issues %}
+                                                <span class="badge bg-danger bg-opacity-20 text-danger border border-danger-subtle px-2 py-1">
+                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Issues Reported
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1">
+                                                    <i class="bi bi-check-circle-fill me-1"></i> Completed
+                                                </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-warning bg-opacity-20 text-warning border border-warning-subtle px-2 py-1">
+                                                <i class="bi bi-clock-history me-1"></i> Scheduled
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if insp.status == 'COMPLETED' %}
+                                            <a href="{% url 'inspection_detail' insp.id %}" class="btn btn-outline-gold btn-sm action-btn-pill text-white"><i class="bi bi-eye me-1"></i>View Report</a>
+                                        {% else %}
+                                            <a href="{% url 'perform_inspection' insp.id %}" class="btn btn-gold btn-sm action-btn-pill"><i class="bi bi-check2-square me-1"></i>Perform</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4 bg-dark bg-opacity-30 rounded-4">
+                    <i class="bi bi-shield-slash text-secondary fs-3 mb-2"></i>
+                    <p class="text-secondary small mb-0">No inspections currently scheduled in the system.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </div> <!-- Close Tab Content -->
 {% endblock %}
 

@@ -105,6 +105,9 @@ def project_pre_save(sender, instance, **kwargs):
 
 @receiver(post_save, sender=SolarInstallationProject)
 def project_post_save(sender, instance, created, **kwargs):
+    from .models import Inverter
+    Inverter.objects.get_or_create(project=instance)
+
     if created:
         # Notify Customer
         Notification.objects.create(
@@ -175,6 +178,26 @@ def project_post_save(sender, instance, created, **kwargs):
                     notification_type="ALERT",
                     user=old_staff
                 )
+
+    # Auto-schedule 6-month inspection if status becomes COMPLETED
+    if instance.status == 'COMPLETED':
+        from .models import Inspection
+        if not Inspection.objects.filter(project=instance).exists():
+            import datetime
+            closing_date = instance.closing_date or timezone.now().date()
+            month = closing_date.month - 1 + 6
+            year = closing_date.year + month // 12
+            month = month % 12 + 1
+            day = min(closing_date.day, [31,
+                29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+                31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1])
+            scheduled_date = datetime.date(year, month, day)
+            
+            Inspection.objects.create(
+                project=instance,
+                scheduled_date=scheduled_date,
+                status='SCHEDULED'
+            )
 
 
 # Complaints Inbox

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = (
@@ -89,13 +90,49 @@ class SolarInstallationProject(models.Model):
     end_date = models.DateField(blank=True, null=True)  # Deadline or Completion Date
     laborers_count = models.IntegerField(default=0)  # Number of laborers assisting the staff on-site
     crew_details = models.TextField(blank=True, null=True, help_text="Names and roles of crew members working on-site")
+    
+    closing_date = models.DateField(blank=True, null=True, help_text="Date when project was closed/completed")
 
     @property
     def remaining_balance(self):
         return self.total_value - self.advances_paid
 
+    def clean(self):
+        super().clean()
+        if self.status == 'COMPLETED':
+            try:
+                inv = self.inverter
+                if not inv.brand or not inv.model or not inv.serial_number or not inv.capacity:
+                    raise ValidationError("A project cannot be completed/closed without complete inverter details (brand, model, serial number, and capacity).")
+            except Exception:
+                raise ValidationError("A project cannot be completed/closed without inverter details (brand, model, serial number, and capacity).")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if self.status == 'COMPLETED' and not self.closing_date:
+            from django.utils import timezone
+            self.closing_date = timezone.now().date()
+        elif self.status != 'COMPLETED':
+            self.closing_date = None
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.title} - {self.customer.username}"
+
+
+class Inverter(models.Model):
+    project = models.OneToOneField(
+        SolarInstallationProject,
+        on_delete=models.CASCADE,
+        related_name='inverter'
+    )
+    brand = models.CharField(max_length=100, blank=True, null=True, help_text="Inverter Brand")
+    model = models.CharField(max_length=100, blank=True, null=True, help_text="Inverter Model")
+    serial_number = models.CharField(max_length=100, blank=True, null=True, help_text="Inverter Serial Number (S.No)")
+    capacity = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True, help_text="Inverter Capacity in kW")
+
+    def __str__(self):
+        return f"{self.brand or 'Unknown'} {self.model or ''} ({self.serial_number or 'No S/N'})"
 
 
 class Attendance(models.Model):
@@ -333,3 +370,47 @@ class NotificationRead(models.Model):
 
     def __str__(self):
         return f"{self.user.username} read {self.notification.title}"
+
+
+class Inspection(models.Model):
+    STATUS_CHOICES = (
+        ('SCHEDULED', 'Scheduled'),
+        ('COMPLETED', 'Completed'),
+    )
+    project = models.ForeignKey(
+        SolarInstallationProject, 
+        on_delete=models.CASCADE, 
+        related_name='inspections'
+    )
+    scheduled_date = models.DateField(help_text="Scheduled date for the 6-month inspection")
+    inspection_date = models.DateField(blank=True, null=True, help_text="Date when inspection was actually performed")
+    inspector = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='performed_inspections',
+        limit_choices_to={'role': 'STAFF'}
+    )
+    
+    # Checklist
+    panel_check = models.BooleanField(default=False, verbose_name="Solar Panels clean and secure")
+    inverter_check = models.BooleanField(default=False, verbose_name="Inverter operating correctly")
+    wiring_check = models.BooleanField(default=False, verbose_name="Wiring and connections intact")
+    mounting_check = models.BooleanField(default=False, verbose_name="Mounting structure stable")
+    performance_check = models.BooleanField(default=False, verbose_name="System performance verified")
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SCHEDULED')
+    
+    # Issue reporting
+    has_issues = models.BooleanField(default=False, help_text="Were issues identified during the inspection?")
+    issue_details = models.TextField(blank=True, null=True, help_text="Detailed description of the issues reported")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-scheduled_date']
+
+    def __str__(self):
+        return f"6-Month Inspection for {self.project.title} ({self.get_status_display()})"

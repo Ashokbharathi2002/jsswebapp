@@ -1,0 +1,126 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Perform 6-Month Inspection | Jothi Solar Solutions{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card glass-card p-4 p-md-5 border-0">
+            <h3 class="fw-bold text-white mb-1"><i class="bi bi-shield-check text-gradient-gold me-2"></i> Perform Inspection</h3>
+            <p class="text-secondary small mb-4">Complete the safety & quality checklist and report any identified issues.</p>
+            
+            <div class="bg-black bg-opacity-35 p-3 rounded-4 mb-4 small border border-white-50 border-opacity-10">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <span class="text-secondary-50 d-block">Project Name</span>
+                        <strong class="text-white">{{ inspection.project.title }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-secondary-50 d-block">Client / Customer</span>
+                        <strong class="text-white">{{ inspection.project.customer.get_full_name|default:inspection.project.customer.username }}</strong>
+                    </div>
+                </div>
+                <hr class="my-2 border-white-50 border-opacity-10">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <span class="text-secondary-50 d-block">Inverter Brand / Model</span>
+                        <strong class="text-white">{{ inspection.project.inverter.brand|default:"N/A" }} / {{ inspection.project.inverter.model|default:"N/A" }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-secondary-50 d-block">Inverter Capacity / S.No</span>
+                        <strong class="text-white">{% if inspection.project.inverter.capacity %}{{ inspection.project.inverter.capacity }} kW{% else %}0.0 kW{% endif %} (S/N: {{ inspection.project.inverter.serial_number|default:"N/A" }})</strong>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                
+                <h5 class="fw-bold text-gradient-gold mb-3"><i class="bi bi-check2-all me-1"></i> Verification Checklist</h5>
+                
+                <div class="bg-black bg-opacity-20 p-3 rounded-4 mb-4 border border-white-50 border-opacity-5">
+                    <div class="form-check mb-3">
+                        {{ form.panel_check }}
+                        <label class="form-check-label text-white small ms-2" for="{{ form.panel_check.id_for_label }}">
+                            <strong>Solar Panels</strong> - Clean, secure, and no physical damage.
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        {{ form.inverter_check }}
+                        <label class="form-check-label text-white small ms-2" for="{{ form.inverter_check.id_for_label }}">
+                            <strong>Inverter System</strong> - Operating correctly, green status light, no error codes.
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        {{ form.wiring_check }}
+                        <label class="form-check-label text-white small ms-2" for="{{ form.wiring_check.id_for_label }}">
+                            <strong>AC/DC Wiring & Connections</strong> - Intact, no wear, secure conduits.
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        {{ form.mounting_check }}
+                        <label class="form-check-label text-white small ms-2" for="{{ form.mounting_check.id_for_label }}">
+                            <strong>Mounting Structure</strong> - Solid, no loose bolts or structural movement.
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        {{ form.performance_check }}
+                        <label class="form-check-label text-white small ms-2" for="{{ form.performance_check.id_for_label }}">
+                            <strong>Performance Metering</strong> - Output generation metrics matched to expectations.
+                        </label>
+                    </div>
+                </div>
+
+                <h5 class="fw-bold text-gradient-gold mb-3"><i class="bi bi-exclamation-triangle-fill me-1"></i> Issue Reporting</h5>
+                <div class="bg-black bg-opacity-20 p-3 rounded-4 mb-4 border border-white-50 border-opacity-5">
+                    <div class="form-check mb-3">
+                        {{ form.has_issues }}
+                        <label class="form-check-label text-white small ms-2" for="id_has_issues">
+                            <strong>Report Issues</strong> - Check if issues were identified during inspection.
+                        </label>
+                    </div>
+                    <div class="mb-2" id="issueDetailsContainer" style="display: none;">
+                        <label class="form-label text-white small fw-semibold">Detailed Description of Issues</label>
+                        {{ form.issue_details }}
+                        <small class="text-secondary-50 d-block mt-1" style="font-size: 0.7rem;">This report will be sent directly to all Admins and Super Users for review.</small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-3 mt-4">
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-light px-4">Cancel</a>
+                    <button type="submit" class="btn btn-gold px-4 text-white">Submit Inspection Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const hasIssuesCheck = document.getElementById("id_has_issues");
+        const detailsContainer = document.getElementById("issueDetailsContainer");
+        const issueDetailsInput = document.querySelector("#issueDetailsContainer textarea");
+
+        function toggleContainer() {
+            if (hasIssuesCheck.checked) {
+                detailsContainer.style.display = "block";
+                if (issueDetailsInput) {
+                    issueDetailsInput.setAttribute("required", "required");
+                }
+            } else {
+                detailsContainer.style.display = "none";
+                if (issueDetailsInput) {
+                    issueDetailsInput.removeAttribute("required");
+                }
+            }
+        }
+
+        if (hasIssuesCheck) {
+            hasIssuesCheck.addEventListener("change", toggleContainer);
+            toggleContainer(); // Run initial state check
+        }
+    });
+</script>
+{% endblock %}

@@ -46,6 +46,9 @@
     <button class="nav-link text-start" id="push-notifications-tab" data-bs-toggle="tab" data-bs-target="#push-notifications-pane" type="button" role="tab" aria-controls="push-notifications-pane" aria-selected="false">
         <i class="bi bi-bell-fill me-2"></i> Push Notifications
     </button>
+    <button class="nav-link text-start" id="inspections-tab" data-bs-toggle="tab" data-bs-target="#inspections-pane" type="button" role="tab" aria-controls="inspections-pane" aria-selected="false">
+        <i class="bi bi-shield-check me-2"></i> 6-Month Inspections
+    </button>
 </div>
 {% endblock %}
 
@@ -1027,13 +1030,49 @@
                                                                                     <label class="form-label text-white small" style="font-size: 0.75rem;">Laborers Count</label>
                                                                                     {{ item.edit_form.laborers_count }}
                                                                                 </div>
-                                                                                <div class="mb-3">
+                                                                                <div class="mb-2">
                                                                                     <label class="form-label text-white small" style="font-size: 0.75rem;">Crew Specifications</label>
                                                                                     {{ item.edit_form.crew_details }}
                                                                                 </div>
                                                                                 <div class="d-flex justify-content-end gap-2">
                                                                                     <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#editProjectCollapse{{ item.project.id }}">Cancel</button>
-                                                                                    <button type="submit" class="btn btn-gold btn-sm text-white">Save Project</button>
+                                                                                    <button type="submit" class="btn btn-gold btn-sm text-white">Save Project Info</button>
+                                                                                </div>
+                                                                            </form>
+
+                                                                            <hr class="my-3 border-secondary border-opacity-20">
+
+                                                                            <!-- Separate Inverter Form -->
+                                                                            <form method="POST" class="bg-black bg-opacity-25 p-3 rounded-3 border border-secondary border-opacity-10">
+                                                                                {% csrf_token %}
+                                                                                <input type="hidden" name="action" value="edit_inverter">
+                                                                                <input type="hidden" name="project_id" value="{{ item.project.id }}">
+                                                                                
+                                                                                <h6 class="fw-bold text-gradient-gold mb-3 small"><i class="bi bi-cpu-fill me-1"></i> Update Inverter Specifications</h6>
+                                                                                
+                                                                                <div class="row">
+                                                                                    <div class="col-md-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Inverter Brand</label>
+                                                                                        {{ item.inverter_form.brand }}
+                                                                                    </div>
+                                                                                    <div class="col-md-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Model / Spec</label>
+                                                                                        {{ item.inverter_form.model }}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="row">
+                                                                                    <div class="col-md-6 mb-3">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Serial Number (S.No)</label>
+                                                                                        {{ item.inverter_form.serial_number }}
+                                                                                    </div>
+                                                                                    <div class="col-md-6 mb-3">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Capacity (kW)</label>
+                                                                                        {{ item.inverter_form.capacity }}
+                                                                                    </div>
+                                                                                </div>
+                                                                                
+                                                                                <div class="d-flex justify-content-end">
+                                                                                    <button type="submit" class="btn btn-gold btn-sm text-white px-3"><i class="bi bi-save me-1"></i> Save Inverter Specs</button>
                                                                                 </div>
                                                                             </form>
                                                                         </div>
@@ -1145,13 +1184,49 @@
                                                                                     <label class="form-label text-white small" style="font-size: 0.75rem;">Laborers Count</label>
                                                                                     {{ item.edit_form.laborers_count }}
                                                                                 </div>
-                                                                                <div class="mb-3">
+                                                                                <div class="mb-2">
                                                                                     <label class="form-label text-white small" style="font-size: 0.75rem;">Crew Specifications</label>
                                                                                     {{ item.edit_form.crew_details }}
                                                                                 </div>
                                                                                 <div class="d-flex justify-content-end gap-2">
                                                                                     <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#editProjectCollapseArchived{{ item.project.id }}">Cancel</button>
-                                                                                    <button type="submit" class="btn btn-gold btn-sm text-white">Save Project</button>
+                                                                                    <button type="submit" class="btn btn-gold btn-sm text-white">Save Project Info</button>
+                                                                                </div>
+                                                                            </form>
+
+                                                                            <hr class="my-3 border-secondary border-opacity-20">
+
+                                                                            <!-- Separate Inverter Form -->
+                                                                            <form method="POST" class="bg-black bg-opacity-25 p-3 rounded-3 border border-secondary border-opacity-10">
+                                                                                {% csrf_token %}
+                                                                                <input type="hidden" name="action" value="edit_inverter">
+                                                                                <input type="hidden" name="project_id" value="{{ item.project.id }}">
+                                                                                
+                                                                                <h6 class="fw-bold text-gradient-gold mb-3 small"><i class="bi bi-cpu-fill me-1"></i> Update Inverter Specifications</h6>
+                                                                                
+                                                                                <div class="row">
+                                                                                    <div class="col-md-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Inverter Brand</label>
+                                                                                        {{ item.inverter_form.brand }}
+                                                                                    </div>
+                                                                                    <div class="col-md-6 mb-2">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Model / Spec</label>
+                                                                                        {{ item.inverter_form.model }}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="row">
+                                                                                    <div class="col-md-6 mb-3">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Serial Number (S.No)</label>
+                                                                                        {{ item.inverter_form.serial_number }}
+                                                                                    </div>
+                                                                                    <div class="col-md-6 mb-3">
+                                                                                        <label class="form-label text-white small" style="font-size: 0.75rem;">Capacity (kW)</label>
+                                                                                        {{ item.inverter_form.capacity }}
+                                                                                    </div>
+                                                                                </div>
+                                                                                
+                                                                                <div class="d-flex justify-content-end">
+                                                                                    <button type="submit" class="btn btn-gold btn-sm text-white px-3"><i class="bi bi-save me-1"></i> Save Inverter Specs</button>
                                                                                 </div>
                                                                             </form>
                                                                         </div>
@@ -1219,10 +1294,11 @@
                                         <label class="form-label text-white small">Helpers Count</label>
                                         {{ project_form.laborers_count }}
                                     </div>
-                                    <div class="mb-3">
+                                    <div class="mb-2">
                                         <label class="form-label text-white small">Crew specifications</label>
                                         {{ project_form.crew_details }}
                                     </div>
+
                                     <button type="submit" class="btn btn-gold w-100 hover-lift text-white">Deploy Project</button>
                                 </form>
                             </div>
@@ -1627,6 +1703,106 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Tab: 6-Month Inspections -->
+                <div class="tab-pane fade" id="inspections-pane" role="tabpanel" aria-labelledby="inspections-tab">
+                    <h5 class="fw-bold text-white mb-2">6-Month Inspections Overview</h5>
+                    <p class="text-secondary small mb-4">Monitor all post-completion scheduled checks, inspector reports, and reported site issues.</p>
+                    
+                    {% if inspections %}
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover align-middle border-0 small">
+                                <thead>
+                                    <tr class="text-secondary">
+                                        <th>Project Title</th>
+                                        <th>Client</th>
+                                        <th>Assigned Staff</th>
+                                        <th>Scheduled Date</th>
+                                        <th>Performed Date</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Report</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for insp in inspections %}
+                                        <tr {% if insp.has_issues %}style="background-color: rgba(244, 63, 94, 0.05) !important;"{% endif %}>
+                                            <td class="fw-bold text-white">
+                                                <div>{{ insp.project.title }}</div>
+                                                <div class="text-secondary-50" style="font-size: 0.75rem;">Inverter: {{ insp.project.inverter.brand|default:"N/A" }} ({% if insp.project.inverter.capacity %}{{ insp.project.inverter.capacity }} kW{% else %}0.0 kW{% endif %})</div>
+                                            </td>
+                                            <td>{{ insp.project.customer.get_full_name|default:insp.project.customer.username }}</td>
+                                            <td>
+                                                {% if insp.status == 'SCHEDULED' %}
+                                                    <form method="POST" class="d-flex align-items-center gap-1">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="assign_inspector">
+                                                        <input type="hidden" name="inspection_id" value="{{ insp.id }}">
+                                                        <select name="inspector_id" class="form-select form-select-sm bg-black text-white border-secondary-subtle" style="width: auto; min-width: 140px; font-size: 0.75rem;" required>
+                                                            <option value="">-- Assign Staff --</option>
+                                                            {% for staff in all_staff %}
+                                                                <option value="{{ staff.id }}" {% if insp.inspector.id == staff.id %}selected{% endif %}>
+                                                                    {{ staff.get_full_name|default:staff.username }}
+                                                                </option>
+                                                            {% endfor %}
+                                                        </select>
+                                                        <button type="submit" class="btn btn-gold btn-sm px-2 py-1 text-white" title="Assign Inspector" style="font-size: 0.75rem;">
+                                                            <i class="bi bi-person-check-fill"></i>
+                                                        </button>
+                                                    </form>
+                                                {% else %}
+                                                    {% if insp.inspector %}
+                                                        <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1">
+                                                            <i class="bi bi-person-fill me-1"></i> {{ insp.inspector.get_full_name|default:insp.inspector.username }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-secondary-50 italic">Unassigned</span>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-white">{{ insp.scheduled_date|date:"M d, Y" }}</td>
+                                            <td class="text-secondary">
+                                                {% if insp.inspection_date %}
+                                                    {{ insp.inspection_date|date:"M d, Y" }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if insp.status == 'COMPLETED' %}
+                                                    {% if insp.has_issues %}
+                                                        <span class="badge bg-danger bg-opacity-20 text-danger border border-danger px-2 py-1">
+                                                            <i class="bi bi-exclamation-triangle-fill me-1"></i> Issues Reported
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-success bg-opacity-20 text-success border border-success px-2 py-1">
+                                                            <i class="bi bi-check-circle-fill me-1"></i> Completed
+                                                        </span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-warning bg-opacity-20 text-warning border border-warning px-2 py-1">
+                                                        <i class="bi bi-calendar-event me-1"></i> Scheduled
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                {% if insp.status == 'COMPLETED' %}
+                                                    <a href="{% url 'inspection_detail' insp.id %}" class="btn btn-outline-gold btn-sm action-btn-pill text-white"><i class="bi bi-eye me-1"></i>View Report</a>
+                                                {% else %}
+                                                    <span class="text-secondary-50 small italic">Awaiting Inspection</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 bg-dark bg-opacity-30 rounded-4">
+                            <i class="bi bi-shield-slash text-secondary fs-3 mb-2"></i>
+                            <p class="text-secondary small mb-0">No inspections scheduled or performed yet.</p>
+                        </div>
+                    {% endif %}
                 </div>
 
             </div>

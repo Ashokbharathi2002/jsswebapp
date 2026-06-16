@@ -45,6 +45,11 @@ urlpatterns = [
     path('notifications/read/<int:notification_id>/', views_notifications.mark_notification_read, name='mark_notification_read'),
     path('notifications/read/all/', views_notifications.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('notifications/push/', views_notifications.push_notification_view, name='push_notification'),
+    
+    # Inspection Workflow
+    path('inspections/', views.inspection_list, name='inspection_list'),
+    path('inspections/<int:inspection_id>/', views.inspection_detail, name='inspection_detail'),
+    path('inspections/<int:inspection_id>/perform/', views.perform_inspection, name='perform_inspection'),
 ]
 
 

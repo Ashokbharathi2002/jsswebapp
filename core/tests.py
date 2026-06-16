@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from decimal import Decimal
-from core.models import SolarInstallationProject, Attendance, Complaint, LoginLog
+from core.models import SolarInstallationProject, Attendance, Complaint, LoginLog, Inspection, Notification
 
 User = get_user_model()
 
@@ -421,11 +421,11 @@ class SuperUserDashboardTests(TestCase):
 
     def test_completed_project_value_metric(self):
         """Verify that completed projects sum up to the Closed Project Value metric."""
-        SolarInstallationProject.objects.create(
+        proj = SolarInstallationProject.objects.create(
             customer=self.test_customer,
             staff_incharge=self.test_staff,
             title="Completed Solar Setup",
-            status="COMPLETED",
+            status="INSTALLATION",
             total_value=150000.00,
             advances_paid=150000.00,
             start_date="2026-05-01",
@@ -433,6 +433,13 @@ class SuperUserDashboardTests(TestCase):
             laborers_count=2,
             crew_details="testemployee"
         )
+        proj.inverter.brand = "Sungrow"
+        proj.inverter.model = "SG5.0RS"
+        proj.inverter.serial_number = "SN12345678"
+        proj.inverter.capacity = Decimal("5.00")
+        proj.inverter.save()
+        proj.status = "COMPLETED"
+        proj.save()
         
         self.client.login(username="superuser", password="solar123")
         response = self.client.get(reverse('superuser_dashboard'))
@@ -783,6 +790,206 @@ class LoginLogTests(TestCase):
         self.assertNotIn('login_logs_today', response.context)
         self.assertNotIn('login_logs_all', response.context)
         self.assertNotContains(response, "User Login Audit Logs")
+
+
+class InspectionWorkflowTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        
+        self.superuser = User.objects.create_superuser(
+            username="superuser",
+            email="superuser@solar.com",
+            password="solar123",
+            role="SUPERUSER",
+            is_approved=True
+        )
+        
+        self.admin = User.objects.create_user(
+            username="adminuser",
+            email="admin@test.com",
+            password="adminpassword",
+            role="ADMIN",
+            is_approved=True
+        )
+        
+        self.staff = User.objects.create_user(
+            username="staffuser",
+            email="staff@test.com",
+            password="staffpassword",
+            role="STAFF",
+            is_approved=True,
+            employee_id="STF-1234"
+        )
+        
+        self.customer = User.objects.create_user(
+            username="customeruser",
+            email="customer@test.com",
+            password="customerpassword",
+            role="CUSTOMER",
+            is_approved=True
+        )
+        
+        self.project = SolarInstallationProject.objects.create(
+            customer=self.customer,
+            staff_incharge=self.staff,
+            title="Inspection Test Project",
+            status="SITE_SURVEY",
+            total_value=150000.00,
+            advances_paid=50000.00,
+            start_date="2026-05-01",
+            end_date="2026-05-30"
+        )
+
+    def test_project_completion_validation_without_inverter_details(self):
+        """Verify that a project cannot be closed/completed without inverter brand and capacity details."""
+        from django.core.exceptions import ValidationError
+        self.project.status = "COMPLETED"
+        with self.assertRaises(ValidationError):
+            self.project.save()
+
+    def test_project_completion_success_with_inverter_details(self):
+        """Verify that project closes successfully when inverter brand/capacity are set, and creates scheduled inspection."""
+        import datetime
+        from django.utils import timezone
+        inverter = self.project.inverter
+        inverter.brand = "Sungrow"
+        inverter.model = "SG5.0RS"
+        inverter.serial_number = "SN12345678"
+        inverter.capacity = Decimal("5.00")
+        inverter.save()
+        self.project.status = "COMPLETED"
+        self.project.save()
+        
+        # Verify closing date is set
+        self.assertIsNotNone(self.project.closing_date)
+        
+        # Verify 6-month inspection was auto-scheduled
+        inspection = Inspection.objects.filter(project=self.project).first()
+        self.assertIsNotNone(inspection)
+        self.assertEqual(inspection.status, "SCHEDULED")
+        
+        closing_date = self.project.closing_date
+        month = closing_date.month - 1 + 6
+        year = closing_date.year + month // 12
+        month = month % 12 + 1
+        day = min(closing_date.day, [31,
+            29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+            31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1])
+        expected_date = datetime.date(year, month, day)
+        self.assertEqual(inspection.scheduled_date, expected_date)
+
+    def test_staff_perform_inspection_with_issues_notifies_admins(self):
+        """Verify staff can perform inspection, fill checklist, report issues, and send notification to admins."""
+        from django.utils import timezone
+        inverter = self.project.inverter
+        inverter.brand = "Sungrow"
+        inverter.model = "SG5.0RS"
+        inverter.serial_number = "SN12345678"
+        inverter.capacity = Decimal("5.00")
+        inverter.save()
+        self.project.status = "COMPLETED"
+        self.project.save()
+        
+        inspection = Inspection.objects.get(project=self.project)
+        
+        # Log in as Staff
+        self.client.login(username="staffuser", password="staffpassword")
+        
+        response = self.client.post(reverse('perform_inspection', args=[inspection.id]), {
+            'panel_check': True,
+            'inverter_check': True,
+            'wiring_check': True,
+            'mounting_check': True,
+            'performance_check': True,
+            'has_issues': True,
+            'issue_details': 'Damaged wire casing on panel 3.'
+        })
+        self.assertEqual(response.status_code, 302) # redirect to dashboard
+        
+        inspection.refresh_from_db()
+        self.assertEqual(inspection.status, "COMPLETED")
+        self.assertEqual(inspection.inspector, self.staff)
+        self.assertTrue(inspection.has_issues)
+        self.assertEqual(inspection.issue_details, 'Damaged wire casing on panel 3.')
+        
+        # Verify alert notification was sent to admin and superuser
+        notifications = Notification.objects.filter(notification_type="ALERT")
+        self.assertTrue(notifications.filter(user=self.admin).exists())
+        self.assertTrue(notifications.filter(user=self.superuser).exists())
+
+    def test_client_view_only_access(self):
+        """Verify client can view inspection but cannot perform it (returns 403)."""
+        inverter = self.project.inverter
+        inverter.brand = "Sungrow"
+        inverter.model = "SG5.0RS"
+        inverter.serial_number = "SN12345678"
+        inverter.capacity = Decimal("5.00")
+        inverter.save()
+        self.project.status = "COMPLETED"
+        self.project.save()
+        
+        inspection = Inspection.objects.get(project=self.project)
+        
+        # Log in as Client
+        self.client.login(username="customeruser", password="customerpassword")
+        
+        # Detail view should be accessible
+        response = self.client.get(reverse('inspection_detail', args=[inspection.id]))
+        self.assertEqual(response.status_code, 200)
+        
+        # Perform view should be forbidden
+        perform_response = self.client.get(reverse('perform_inspection', args=[inspection.id]))
+        self.assertEqual(perform_response.status_code, 403)
+
+    def test_admin_and_superuser_can_assign_inspector(self):
+        """Verify that an admin and a superuser can assign and unassign an inspector staff to a scheduled inspection."""
+        inverter = self.project.inverter
+        inverter.brand = "Sungrow"
+        inverter.model = "SG5.0RS"
+        inverter.serial_number = "SN12345678"
+        inverter.capacity = Decimal("5.00")
+        inverter.save()
+        self.project.status = "COMPLETED"
+        self.project.save()
+        
+        inspection = Inspection.objects.get(project=self.project)
+        self.assertIsNone(inspection.inspector)
+        
+        # 1. Admin logs in and assigns the staff
+        self.client.login(username="adminuser", password="adminpassword")
+        response = self.client.post(reverse('admin_dashboard'), {
+            'action': 'assign_inspector',
+            'inspection_id': inspection.id,
+            'inspector_id': self.staff.id
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        inspection.refresh_from_db()
+        self.assertEqual(inspection.inspector, self.staff)
+        
+        # 2. Admin unassigns the staff (inspector_id = "")
+        response = self.client.post(reverse('admin_dashboard'), {
+            'action': 'assign_inspector',
+            'inspection_id': inspection.id,
+            'inspector_id': ""
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        inspection.refresh_from_db()
+        self.assertIsNone(inspection.inspector)
+        
+        # 3. Superuser logs in and assigns the staff
+        self.client.login(username="superuser", password="solar123")
+        response = self.client.post(reverse('superuser_dashboard'), {
+            'action': 'assign_inspector',
+            'inspection_id': inspection.id,
+            'inspector_id': self.staff.id
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        inspection.refresh_from_db()
+        self.assertEqual(inspection.inspector, self.staff)
+
 
 
 

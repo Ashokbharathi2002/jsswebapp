@@ -1,0 +1,132 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Inspection Report | Jothi Solar Solutions{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card glass-card p-4 p-md-5 border-0">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="fw-bold text-white mb-0"><i class="bi bi-file-earmark-medical-fill text-gradient-gold me-2"></i> Inspection Report</h3>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to Dashboard</a>
+            </div>
+            
+            <div class="bg-black bg-opacity-35 p-3 rounded-4 mb-4 small border border-white-50 border-opacity-10">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <span class="text-secondary-50 d-block">Project Name</span>
+                        <strong class="text-white">{{ inspection.project.title }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-secondary-50 d-block">Client / Customer</span>
+                        <strong class="text-white">{{ inspection.project.customer.get_full_name|default:inspection.project.customer.username }}</strong>
+                    </div>
+                </div>
+                <hr class="my-2 border-white-50 border-opacity-10">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <span class="text-secondary-50 d-block">Inverter Brand / Model</span>
+                        <strong class="text-white">{{ inspection.project.inverter.brand|default:"N/A" }} / {{ inspection.project.inverter.model|default:"N/A" }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-secondary-50 d-block">Inverter Capacity / S.No</span>
+                        <strong class="text-white">{% if inspection.project.inverter.capacity %}{{ inspection.project.inverter.capacity }} kW{% else %}0.0 kW{% endif %} (S/N: {{ inspection.project.inverter.serial_number|default:"N/A" }})</strong>
+                    </div>
+                </div>
+                <hr class="my-2 border-white-50 border-opacity-10">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <span class="text-secondary-50 d-block">Inspector</span>
+                        <strong class="text-white">
+                            {% if inspection.inspector %}
+                                {{ inspection.inspector.get_full_name|default:inspection.inspector.username }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-secondary-50 d-block">Inspection Date</span>
+                        <strong class="text-white">{{ inspection.inspection_date|date:"M d, Y" }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <h5 class="fw-bold text-white mb-3"><i class="bi bi-check-circle-fill text-gradient-gold me-2"></i> Checklist Verification</h5>
+            <div class="bg-black bg-opacity-20 p-3 rounded-4 mb-4 border border-white-50 border-opacity-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-white small">Solar panels clean and secure</span>
+                    <span>
+                        {% if inspection.panel_check %}
+                            <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-lg"></i> Verified</span>
+                        {% else %}
+                            <span class="badge bg-danger bg-opacity-20 text-danger border border-danger-subtle px-2 py-1"><i class="bi bi-x-lg"></i> Not Verified</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-white small">Inverter operating correctly</span>
+                    <span>
+                        {% if inspection.inverter_check %}
+                            <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-lg"></i> Verified</span>
+                        {% else %}
+                            <span class="badge bg-danger bg-opacity-20 text-danger border border-danger-subtle px-2 py-1"><i class="bi bi-x-lg"></i> Not Verified</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-white small">Wiring and connections intact</span>
+                    <span>
+                        {% if inspection.wiring_check %}
+                            <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-lg"></i> Verified</span>
+                        {% else %}
+                            <span class="badge bg-danger bg-opacity-20 text-danger border border-danger-subtle px-2 py-1"><i class="bi bi-x-lg"></i> Not Verified</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-white small">Mounting structure stable</span>
+                    <span>
+                        {% if inspection.mounting_check %}
+                            <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-lg"></i> Verified</span>
+                        {% else %}
+                            <span class="badge bg-danger bg-opacity-20 text-danger border border-danger-subtle px-2 py-1"><i class="bi bi-x-lg"></i> Not Verified</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-white small">System performance verified</span>
+                    <span>
+                        {% if inspection.performance_check %}
+                            <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-lg"></i> Verified</span>
+                        {% else %}
+                            <span class="badge bg-danger bg-opacity-20 text-danger border border-danger-subtle px-2 py-1"><i class="bi bi-x-lg"></i> Not Verified</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <h5 class="fw-bold text-white mb-3"><i class="bi bi-exclamation-triangle-fill text-gradient-cyan me-2"></i> Issue & Status Log</h5>
+            <div class="bg-black bg-opacity-20 p-3 rounded-4 mb-2 border border-white-50 border-opacity-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-white small">Issues Identified?</span>
+                    <span>
+                        {% if inspection.has_issues %}
+                            <span class="badge bg-danger bg-opacity-20 text-danger border border-danger-subtle px-2 py-1">Yes, Issues Found</span>
+                        {% else %}
+                            <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1">No Issues Found</span>
+                        {% endif %}
+                    </span>
+                </div>
+                {% if inspection.has_issues %}
+                    <div class="mt-2 bg-dark p-3 rounded-3 border border-danger border-opacity-20">
+                        <label class="text-secondary small fw-semibold d-block mb-1">Issue Details</label>
+                        <p class="text-white small mb-0" style="white-space: pre-line;">{{ inspection.issue_details }}</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

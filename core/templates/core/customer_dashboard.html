@@ -13,6 +13,9 @@
     <button class="nav-link text-start" id="expenses-tab" data-bs-toggle="tab" data-bs-target="#expenses-pane" type="button" role="tab" aria-controls="expenses-pane" aria-selected="false">
         <i class="bi bi-cash-coin me-2"></i> Project Expenses
     </button>
+    <button class="nav-link text-start" id="inspections-tab" data-bs-toggle="tab" data-bs-target="#inspections-pane" type="button" role="tab" aria-controls="inspections-pane" aria-selected="false">
+        <i class="bi bi-shield-check me-2"></i> 6-Month Inspections
+    </button>
 </div>
 {% endblock %}
 
@@ -192,6 +195,53 @@
             </div>
         </div>
     </div>
+
+    <!-- System Specifications / Inverter Details -->
+    {% if project.inverter %}
+    <div class="row mb-4 animate-fade-in">
+        <div class="col-12">
+            <div class="card glass-card p-4 border-0 h-100" style="border-left: 4px solid var(--accent-gold) !important;">
+                <h5 class="fw-bold text-white mb-3">
+                    <i class="bi bi-cpu-fill text-warning me-2"></i> System Inverter Specifications
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3 col-6">
+                        <div class="bg-dark bg-opacity-50 p-3 rounded-3 border border-secondary border-opacity-10 h-100">
+                            <small class="text-secondary d-block mb-1">Brand</small>
+                            <strong class="text-white small d-flex align-items-center">
+                                <i class="bi bi-patch-check text-warning me-2"></i> {{ project.inverter.brand|default:"Not specified" }}
+                            </strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="bg-dark bg-opacity-50 p-3 rounded-3 border border-secondary border-opacity-10 h-100">
+                            <small class="text-secondary d-block mb-1">Model / Spec</small>
+                            <strong class="text-white small d-flex align-items-center">
+                                <i class="bi bi-gear-wide-connected text-warning me-2"></i> {{ project.inverter.model|default:"Not specified" }}
+                            </strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="bg-dark bg-opacity-50 p-3 rounded-3 border border-secondary border-opacity-10 h-100">
+                            <small class="text-secondary d-block mb-1">Serial Number (S.No)</small>
+                            <strong class="text-white small d-flex align-items-center">
+                                <i class="bi bi-hash text-warning me-2"></i> {{ project.inverter.serial_number|default:"Not specified" }}
+                            </strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="bg-dark bg-opacity-50 p-3 rounded-3 border border-secondary border-opacity-10 h-100">
+                            <small class="text-secondary d-block mb-1">Capacity</small>
+                            <strong class="text-white small d-flex align-items-center">
+                                <i class="bi bi-lightning-charge text-warning me-2"></i> {% if project.inverter.capacity %}{{ project.inverter.capacity }} kW{% else %}Not specified{% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- On-Site Crew & Incharge Details -->
     <div class="row g-4 mb-4">
@@ -457,6 +507,80 @@
                 <div class="text-center py-5 bg-dark bg-opacity-20 rounded-4 border border-secondary border-opacity-10">
                     <i class="bi bi-cash-coin text-secondary fs-2 mb-2 d-block"></i>
                     <p class="text-secondary small mb-0">No project expenses have been logged yet for your installation.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Inspections Pane (Read-Only for Client) -->
+    <div class="tab-pane fade" id="inspections-pane" role="tabpanel" aria-labelledby="inspections-tab">
+        <div class="card glass-card p-4 p-md-5 border-0">
+            <div class="row align-items-center mb-4">
+                <div class="col-md-8">
+                    <h4 class="fw-bold text-white mb-1"><i class="bi bi-shield-check text-gradient-gold me-2"></i> 6-Month Inspections</h4>
+                    <p class="text-secondary small mb-0">Track post-completion maintenance checkups and inspections for your solar system.</p>
+                </div>
+            </div>
+
+            {% if inspections %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle border-0 small">
+                        <thead>
+                            <tr class="text-secondary">
+                                <th>Scheduled Date</th>
+                                <th>Performed Date</th>
+                                <th>Inspector</th>
+                                <th>Status</th>
+                                <th>Report</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for insp in inspections %}
+                                <tr>
+                                    <td class="fw-bold text-white">{{ insp.scheduled_date|date:"M d, Y" }}</td>
+                                    <td class="text-secondary">
+                                        {% if insp.inspection_date %}
+                                            {{ insp.inspection_date|date:"M d, Y" }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-secondary">
+                                        {% if insp.inspector %}
+                                            {{ insp.inspector.get_full_name|default:insp.inspector.username }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if insp.status == 'COMPLETED' %}
+                                            <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i> Completed
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning bg-opacity-20 text-warning border border-warning-subtle px-2 py-1">
+                                                <i class="bi bi-calendar-event me-1"></i> Scheduled
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if insp.status == 'COMPLETED' %}
+                                            <a href="{% url 'inspection_detail' insp.id %}" class="btn btn-outline-gold btn-sm px-3 py-1">
+                                                <i class="bi bi-eye me-1"></i> View Report
+                                            </a>
+                                        {% else %}
+                                            <span class="text-secondary-50 small italic">Pending completion</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5 bg-dark bg-opacity-20 rounded-4 border border-secondary border-opacity-10">
+                    <i class="bi bi-shield-slash text-secondary fs-2 mb-2 d-block"></i>
+                    <p class="text-secondary small mb-0">No inspections scheduled yet. Inspections are scheduled after the project is completed & closed.</p>
                 </div>
             {% endif %}
         </div>

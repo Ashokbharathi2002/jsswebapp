@@ -8,8 +8,9 @@ from django.urls import reverse
 from datetime import datetime
 from decimal import Decimal
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
-from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense, LoginLog, LeaveRequest, Notification
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense, LoginLog, LeaveRequest, Notification, Inspection, Inverter
 from .forms import (
     CustomerSignUpForm, 
     StaffCreationForm, 
@@ -25,7 +26,9 @@ from .forms import (
     ComplaintForm,
     QuotationForm,
     ProjectExpenseForm,
-    LeaveRequestForm
+    LeaveRequestForm,
+    InspectionPerformForm,
+    InverterForm
 )
 
 def login_view(request):
@@ -168,6 +171,8 @@ def customer_dashboard(request):
             else:
                 messages.error(request, "Failed to register complaint. Please verify inputs.")
 
+    inspections = Inspection.objects.filter(project__customer=request.user).order_by('-scheduled_date')
+
     context = {
         'project': active_project,
         'has_project': active_project is not None,
@@ -175,6 +180,7 @@ def customer_dashboard(request):
         'complaint_form': complaint_form,
         'expenses': expenses,
         'total_expenses': total_expenses,
+        'inspections': inspections,
     }
     return render(request, 'core/customer_dashboard.html', context)
 
@@ -239,6 +245,17 @@ def staff_dashboard(request):
                 return redirect('staff_dashboard')
             else:
                 messages.error(request, "Failed to submit leave request. Please verify inputs.")
+        elif action == 'edit_inverter':
+            project_id = request.POST.get('project_id')
+            project = get_object_or_404(SolarInstallationProject, id=project_id, staff_incharge=staff_user)
+            inverter, _ = Inverter.objects.get_or_create(project=project)
+            form = InverterForm(request.POST, instance=inverter)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Updated inverter details for project '{project.title}' successfully!")
+            else:
+                messages.error(request, "Failed to update inverter details. Please verify inputs.")
+            return redirect('staff_dashboard')
         else:
             project_id = request.POST.get('project_id')
             project = get_object_or_404(SolarInstallationProject, id=project_id, staff_incharge=staff_user)
@@ -251,9 +268,11 @@ def staff_dashboard(request):
     # Prepopulate updates forms for active projects
     forms_list = []
     for proj in active_projects:
+        inverter, _ = Inverter.objects.get_or_create(project=proj)
         forms_list.append({
             'project': proj,
-            'form': StaffProjectUpdateForm(instance=proj)
+            'form': StaffProjectUpdateForm(instance=proj),
+            'inverter_form': InverterForm(instance=inverter)
         })
 
     # Project Expenses
@@ -281,6 +300,7 @@ def staff_dashboard(request):
         'total_expenses': total_expenses,
         'leave_requests': leave_requests,
         'leave_form': leave_form,
+        'inspections': Inspection.objects.all().order_by('-scheduled_date'),
     }
     return render(request, 'core/staff_dashboard.html', context)
 
@@ -389,9 +409,11 @@ def admin_dashboard(request):
     # Pre-populate Project details list with edit forms
     project_data_list = []
     for proj in SolarInstallationProject.objects.all().order_by('-start_date'):
+        inverter, _ = Inverter.objects.get_or_create(project=proj)
         project_data_list.append({
             'project': proj,
-            'edit_form': ProjectForm(instance=proj)
+            'edit_form': ProjectForm(instance=proj),
+            'inverter_form': InverterForm(instance=inverter)
         })
 
     # Pre-populate Staff list
@@ -593,6 +615,17 @@ def admin_dashboard(request):
                 return redirect('admin_dashboard')
             else:
                 messages.error(request, "Failed to update project details.")
+        elif action == 'edit_inverter':
+            project_id = request.POST.get('project_id')
+            project = get_object_or_404(SolarInstallationProject, id=project_id)
+            inverter, _ = Inverter.objects.get_or_create(project=project)
+            form = InverterForm(request.POST, instance=inverter)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Inverter specifications for project '{project.title}' updated successfully!")
+            else:
+                messages.error(request, "Failed to update inverter details.")
+            return redirect('admin_dashboard')
         elif action == 'mark_attendance':
             date_str = request.POST.get('attendance_date')
             try:
@@ -618,8 +651,11 @@ def admin_dashboard(request):
             project_id = request.POST.get('project_id')
             project = get_object_or_404(SolarInstallationProject, id=project_id)
             project.status = 'COMPLETED'
-            project.save()
-            messages.success(request, f"Solar project '{project.title}' has been successfully completed and closed!")
+            try:
+                project.save()
+                messages.success(request, f"Solar project '{project.title}' has been successfully completed and closed!")
+            except ValidationError as e:
+                messages.error(request, f"Failed to close project: {', '.join(e.messages)}")
             return redirect('admin_dashboard')
         elif action == 'resolve_complaint':
             complaint_id = request.POST.get('complaint_id')
@@ -667,6 +703,19 @@ def admin_dashboard(request):
             leave.approved_by = request.user
             leave.save()
             messages.success(request, f"Leave request for {leave.user.username} rejected.")
+            return redirect('admin_dashboard')
+        elif action == 'assign_inspector':
+            inspection_id = request.POST.get('inspection_id')
+            inspector_id = request.POST.get('inspector_id')
+            inspection = get_object_or_404(Inspection, id=inspection_id)
+            if inspector_id:
+                inspector = get_object_or_404(CustomUser, id=inspector_id, role='STAFF')
+                inspection.inspector = inspector
+                messages.success(request, f"Inspector '{inspector.get_full_name() or inspector.username}' assigned to inspection for '{inspection.project.title}' successfully!")
+            else:
+                inspection.inspector = None
+                messages.success(request, f"Inspector unassigned from inspection for '{inspection.project.title}' successfully!")
+            inspection.save()
             return redirect('admin_dashboard')
 
     pending_complaints = Complaint.objects.filter(status='PENDING').order_by('-created_at')
@@ -731,6 +780,8 @@ def admin_dashboard(request):
         # Notifications Params
         'active_users': CustomUser.objects.filter(is_approved=True, is_active=True).order_by('role', 'username'),
         'recent_notifications': Notification.objects.all().order_by('-created_at')[:50],
+        'inspections': Inspection.objects.all().order_by('-scheduled_date'),
+        'all_staff': CustomUser.objects.filter(role='STAFF', is_active=True).order_by('username'),
     }
     return render(request, 'core/admin_dashboard.html', context)
 
@@ -848,9 +899,11 @@ def superuser_dashboard(request):
     # 5. Project list
     project_data_list = []
     for proj in SolarInstallationProject.objects.all().order_by('-start_date'):
+        inverter, _ = Inverter.objects.get_or_create(project=proj)
         project_data_list.append({
             'project': proj,
-            'edit_form': ProjectForm(instance=proj)
+            'edit_form': ProjectForm(instance=proj),
+            'inverter_form': InverterForm(instance=inverter)
         })
 
     # Load Attendance list for selected date
@@ -1000,6 +1053,17 @@ def superuser_dashboard(request):
                 return redirect('superuser_dashboard')
             else:
                 messages.error(request, "Failed to update project details.")
+        elif action == 'edit_inverter':
+            project_id = request.POST.get('project_id')
+            project = get_object_or_404(SolarInstallationProject, id=project_id)
+            inverter, _ = Inverter.objects.get_or_create(project=project)
+            form = InverterForm(request.POST, instance=inverter)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Inverter specifications for project '{project.title}' updated successfully!")
+            else:
+                messages.error(request, "Failed to update inverter details.")
+            return redirect('superuser_dashboard')
 
         elif action == 'reset_password':
             user_id = request.POST.get('user_id')
@@ -1029,8 +1093,11 @@ def superuser_dashboard(request):
             project_id = request.POST.get('project_id')
             project = get_object_or_404(SolarInstallationProject, id=project_id)
             project.status = 'COMPLETED'
-            project.save()
-            messages.success(request, f"Solar project '{project.title}' has been successfully completed and closed!")
+            try:
+                project.save()
+                messages.success(request, f"Solar project '{project.title}' has been successfully completed and closed!")
+            except ValidationError as e:
+                messages.error(request, f"Failed to close project: {', '.join(e.messages)}")
             return redirect('superuser_dashboard')
         elif action == 'resolve_complaint':
             complaint_id = request.POST.get('complaint_id')
@@ -1081,6 +1148,19 @@ def superuser_dashboard(request):
                     status='LEAVE'
                 ).delete()
                 messages.warning(request, f"Leave request for {leave.user.username} has been cancelled and corresponding attendance records removed.")
+            return redirect('superuser_dashboard')
+        elif action == 'assign_inspector':
+            inspection_id = request.POST.get('inspection_id')
+            inspector_id = request.POST.get('inspector_id')
+            inspection = get_object_or_404(Inspection, id=inspection_id)
+            if inspector_id:
+                inspector = get_object_or_404(CustomUser, id=inspector_id, role='STAFF')
+                inspection.inspector = inspector
+                messages.success(request, f"Inspector '{inspector.get_full_name() or inspector.username}' assigned to inspection for '{inspection.project.title}' successfully!")
+            else:
+                inspection.inspector = None
+                messages.success(request, f"Inspector unassigned from inspection for '{inspection.project.title}' successfully!")
+            inspection.save()
             return redirect('superuser_dashboard')
 
 
@@ -1222,6 +1302,8 @@ def superuser_dashboard(request):
         # Notifications Params
         'active_users': CustomUser.objects.filter(is_approved=True, is_active=True).order_by('role', 'username'),
         'recent_notifications': Notification.objects.all().order_by('-created_at')[:50],
+        'inspections': Inspection.objects.all().order_by('-scheduled_date'),
+        'all_staff': CustomUser.objects.filter(role='STAFF', is_active=True).order_by('username'),
     }
     return render(request, 'core/superuser_dashboard.html', context)
 
@@ -1534,6 +1616,80 @@ def delete_expense_view(request, expense_id):
     
     next_url = request.META.get('HTTP_REFERER', 'dashboard')
     return redirect(next_url)
+
+
+@login_required
+def inspection_list(request):
+    user = request.user
+    if user.role in ['SUPERUSER', 'ADMIN'] or user.is_superuser:
+        inspections = Inspection.objects.all().order_by('-scheduled_date')
+    elif user.role == 'STAFF':
+        inspections = Inspection.objects.all().order_by('-scheduled_date')
+    elif user.role == 'CUSTOMER':
+        inspections = Inspection.objects.filter(project__customer=user).order_by('-scheduled_date')
+    else:
+        return HttpResponseForbidden("Access Denied")
+        
+    return render(request, 'core/inspection_list.html', {
+        'inspections': inspections
+    })
+
+
+@login_required
+def inspection_detail(request, inspection_id):
+    user = request.user
+    inspection = get_object_or_404(Inspection, id=inspection_id)
+    
+    # Client restriction
+    if user.role == 'CUSTOMER' and inspection.project.customer != user:
+        return HttpResponseForbidden("Access Denied")
+    elif user.role not in ['SUPERUSER', 'ADMIN', 'STAFF', 'CUSTOMER'] and not user.is_superuser:
+        return HttpResponseForbidden("Access Denied")
+        
+    return render(request, 'core/inspection_detail.html', {
+        'inspection': inspection
+    })
+
+
+@login_required
+def perform_inspection(request, inspection_id):
+    user = request.user
+    # Only staff can perform inspections
+    if user.role != 'STAFF':
+        return HttpResponseForbidden("Access Denied: Only Staff can perform inspections.")
+        
+    inspection = get_object_or_404(Inspection, id=inspection_id)
+    
+    if request.method == 'POST':
+        form = InspectionPerformForm(request.POST, instance=inspection)
+        if form.is_valid():
+            insp = form.save(commit=False)
+            insp.inspector = user
+            insp.inspection_date = timezone.now().date()
+            insp.status = 'COMPLETED'
+            insp.save()
+            
+            # Issue reporting with notification forms sent to Super Users and Admins
+            if insp.has_issues:
+                admins = CustomUser.objects.filter(role__in=['ADMIN', 'SUPERUSER'], is_active=True)
+                for admin in admins:
+                    Notification.objects.create(
+                        title="Inspection Alert: Issues Reported",
+                        message=f"Staff member '{user.get_full_name() or user.username}' reported issues during the 6-month inspection for project '{insp.project.title}'. Details: {insp.issue_details}",
+                        notification_type="ALERT",
+                        user=admin
+                    )
+            
+            messages.success(request, f"Inspection for '{insp.project.title}' completed successfully!")
+            return redirect('dashboard')
+    else:
+        form = InspectionPerformForm(instance=inspection)
+        
+    return render(request, 'core/perform_inspection.html', {
+        'form': form,
+        'inspection': inspection
+    })
+
 
 
 
