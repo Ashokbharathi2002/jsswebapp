@@ -20,6 +20,7 @@ urlpatterns = [
     path('dashboard/employee/', views.employee_dashboard, name='employee_dashboard'),
     path('dashboard/admin/', views.admin_dashboard, name='admin_dashboard'),
     path('dashboard/superuser/', views.superuser_dashboard, name='superuser_dashboard'),
+    path('dashboard/supervisor/', views.supervisor_dashboard, name='supervisor_dashboard'),
     
     # Admin actions
     path('admin/approve/<int:user_id>/', views.admin_approve_customer, name='admin_approve_customer'),

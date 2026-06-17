@@ -106,6 +106,50 @@
                 </div>
             </div>
 
+            <h5 class="fw-bold text-white mb-3"><i class="bi bi-speedometer text-gradient-gold me-2"></i> Measured Safety Parameters</h5>
+            <div class="bg-black bg-opacity-20 p-3 rounded-4 mb-4 border border-white-50 border-opacity-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-white small">Solar Panel DC Output</span>
+                    <strong class="text-white small">
+                        {% if inspection.panel_dc_output is not None %}
+                            {{ inspection.panel_dc_output }} kW
+                        {% else %}
+                            -
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-white small">Inverter & AC Output</span>
+                    <strong class="text-white small">
+                        {% if inspection.inverter_ac_output is not None %}
+                            {{ inspection.inverter_ac_output }} kW
+                        {% else %}
+                            -
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-white small">Wiring and Protections Drop</span>
+                    <strong class="text-white small">
+                        {% if inspection.wiring_protection is not None %}
+                            {{ inspection.wiring_protection }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-white small">Earthing Resistance</span>
+                    <strong class="text-white small">
+                        {% if inspection.earthing_resistance is not None %}
+                            {{ inspection.earthing_resistance }} ohms
+                        {% else %}
+                            -
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+
             <h5 class="fw-bold text-white mb-3"><i class="bi bi-exclamation-triangle-fill text-gradient-cyan me-2"></i> Issue & Status Log</h5>
             <div class="bg-black bg-opacity-20 p-3 rounded-4 mb-2 border border-white-50 border-opacity-5">
                 <div class="d-flex justify-content-between align-items-center mb-3">

@@ -10,7 +10,7 @@ from decimal import Decimal
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense, LoginLog, LeaveRequest, Notification, Inspection, Inverter
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense, LoginLog, LeaveRequest, Notification, Inspection, Inverter, InspectionLimit
 from .forms import (
     CustomerSignUpForm, 
     StaffCreationForm, 
@@ -28,7 +28,8 @@ from .forms import (
     ProjectExpenseForm,
     LeaveRequestForm,
     InspectionPerformForm,
-    InverterForm
+    InverterForm,
+    InspectionLimitForm
 )
 
 def login_view(request):
@@ -105,6 +106,11 @@ def dashboard_redirect(request):
             logout(request)
             return redirect('pending_approval')
         return redirect('employee_dashboard')
+    elif role == 'SUPERVISOR':
+        if not request.user.is_approved:
+            logout(request)
+            return redirect('pending_approval')
+        return redirect('supervisor_dashboard')
     elif role == 'CUSTOMER':
         if not request.user.is_approved:
             logout(request)
@@ -718,6 +724,77 @@ def admin_dashboard(request):
             inspection.save()
             return redirect('admin_dashboard')
 
+        elif action == 'edit_inspection':
+            inspection_id = request.POST.get('inspection_id')
+            inspection = get_object_or_404(Inspection, id=inspection_id)
+            scheduled_date_str = request.POST.get('scheduled_date')
+            inspection_date_str = request.POST.get('inspection_date')
+            inspector_id = request.POST.get('inspector_id')
+            status = request.POST.get('status')
+            
+            if scheduled_date_str:
+                try:
+                    inspection.scheduled_date = datetime.strptime(scheduled_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            
+            if inspector_id:
+                inspection.inspector = get_object_or_404(CustomUser, id=inspector_id, role='STAFF')
+            else:
+                inspection.inspector = None
+                
+            inspection.status = status
+            if status != 'COMPLETED':
+                inspection.inspection_date = None
+            else:
+                if inspection_date_str:
+                    try:
+                        inspection.inspection_date = datetime.strptime(inspection_date_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        pass
+                if not inspection.inspection_date:
+                    inspection.inspection_date = timezone.now().date()
+            
+            inspection.panel_check = request.POST.get('panel_check') == 'on'
+            inspection.inverter_check = request.POST.get('inverter_check') == 'on'
+            inspection.wiring_check = request.POST.get('wiring_check') == 'on'
+            inspection.mounting_check = request.POST.get('mounting_check') == 'on'
+            inspection.performance_check = request.POST.get('performance_check') == 'on'
+            
+            panel_dc = request.POST.get('panel_dc_output')
+            inspection.panel_dc_output = Decimal(panel_dc) if panel_dc else None
+            
+            inverter_ac = request.POST.get('inverter_ac_output')
+            inspection.inverter_ac_output = Decimal(inverter_ac) if inverter_ac else None
+            
+            wiring_prot = request.POST.get('wiring_protection')
+            inspection.wiring_protection = Decimal(wiring_prot) if wiring_prot else None
+            
+            earth_res = request.POST.get('earthing_resistance')
+            inspection.earthing_resistance = Decimal(earth_res) if earth_res else None
+            
+            inspection.has_issues = request.POST.get('has_issues') == 'on'
+            inspection.issue_details = request.POST.get('issue_details', '').strip()
+            
+            try:
+                inspection.full_clean()
+                inspection.save()
+                messages.success(request, f"Inspection for project '{inspection.project.title}' updated successfully!")
+            except ValidationError as e:
+                err_msg = "; ".join([f"{k}: {', '.join(v)}" for k, v in e.message_dict.items()]) if hasattr(e, 'message_dict') else str(e)
+                messages.error(request, f"Validation Failed: {err_msg}")
+            
+            return redirect('admin_dashboard')
+
+        elif action == 'cancel_inspection':
+            inspection_id = request.POST.get('inspection_id')
+            inspection = get_object_or_404(Inspection, id=inspection_id)
+            inspection.status = 'CANCELLED'
+            inspection.inspection_date = None
+            inspection.save()
+            messages.warning(request, f"Inspection for project '{inspection.project.title}' has been CANCELLED.")
+            return redirect('admin_dashboard')
+
     pending_complaints = Complaint.objects.filter(status='PENDING').order_by('-created_at')
     resolved_complaints = Complaint.objects.filter(status='RESOLVED').order_by('-resolved_at')
     pending_complaints_count = pending_complaints.count()
@@ -1161,6 +1238,77 @@ def superuser_dashboard(request):
                 inspection.inspector = None
                 messages.success(request, f"Inspector unassigned from inspection for '{inspection.project.title}' successfully!")
             inspection.save()
+            return redirect('superuser_dashboard')
+
+        elif action == 'edit_inspection':
+            inspection_id = request.POST.get('inspection_id')
+            inspection = get_object_or_404(Inspection, id=inspection_id)
+            scheduled_date_str = request.POST.get('scheduled_date')
+            inspection_date_str = request.POST.get('inspection_date')
+            inspector_id = request.POST.get('inspector_id')
+            status = request.POST.get('status')
+            
+            if scheduled_date_str:
+                try:
+                    inspection.scheduled_date = datetime.strptime(scheduled_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            
+            if inspector_id:
+                inspection.inspector = get_object_or_404(CustomUser, id=inspector_id, role='STAFF')
+            else:
+                inspection.inspector = None
+                
+            inspection.status = status
+            if status != 'COMPLETED':
+                inspection.inspection_date = None
+            else:
+                if inspection_date_str:
+                    try:
+                        inspection.inspection_date = datetime.strptime(inspection_date_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        pass
+                if not inspection.inspection_date:
+                    inspection.inspection_date = timezone.now().date()
+            
+            inspection.panel_check = request.POST.get('panel_check') == 'on'
+            inspection.inverter_check = request.POST.get('inverter_check') == 'on'
+            inspection.wiring_check = request.POST.get('wiring_check') == 'on'
+            inspection.mounting_check = request.POST.get('mounting_check') == 'on'
+            inspection.performance_check = request.POST.get('performance_check') == 'on'
+            
+            panel_dc = request.POST.get('panel_dc_output')
+            inspection.panel_dc_output = Decimal(panel_dc) if panel_dc else None
+            
+            inverter_ac = request.POST.get('inverter_ac_output')
+            inspection.inverter_ac_output = Decimal(inverter_ac) if inverter_ac else None
+            
+            wiring_prot = request.POST.get('wiring_protection')
+            inspection.wiring_protection = Decimal(wiring_prot) if wiring_prot else None
+            
+            earth_res = request.POST.get('earthing_resistance')
+            inspection.earthing_resistance = Decimal(earth_res) if earth_res else None
+            
+            inspection.has_issues = request.POST.get('has_issues') == 'on'
+            inspection.issue_details = request.POST.get('issue_details', '').strip()
+            
+            try:
+                inspection.full_clean()
+                inspection.save()
+                messages.success(request, f"Inspection for project '{inspection.project.title}' updated successfully!")
+            except ValidationError as e:
+                err_msg = "; ".join([f"{k}: {', '.join(v)}" for k, v in e.message_dict.items()]) if hasattr(e, 'message_dict') else str(e)
+                messages.error(request, f"Validation Failed: {err_msg}")
+            
+            return redirect('superuser_dashboard')
+
+        elif action == 'cancel_inspection':
+            inspection_id = request.POST.get('inspection_id')
+            inspection = get_object_or_404(Inspection, id=inspection_id)
+            inspection.status = 'CANCELLED'
+            inspection.inspection_date = None
+            inspection.save()
+            messages.warning(request, f"Inspection for project '{inspection.project.title}' has been CANCELLED.")
             return redirect('superuser_dashboard')
 
 
@@ -1621,7 +1769,7 @@ def delete_expense_view(request, expense_id):
 @login_required
 def inspection_list(request):
     user = request.user
-    if user.role in ['SUPERUSER', 'ADMIN'] or user.is_superuser:
+    if user.role in ['SUPERUSER', 'ADMIN', 'SUPERVISOR'] or user.is_superuser:
         inspections = Inspection.objects.all().order_by('-scheduled_date')
     elif user.role == 'STAFF':
         inspections = Inspection.objects.all().order_by('-scheduled_date')
@@ -1643,7 +1791,7 @@ def inspection_detail(request, inspection_id):
     # Client restriction
     if user.role == 'CUSTOMER' and inspection.project.customer != user:
         return HttpResponseForbidden("Access Denied")
-    elif user.role not in ['SUPERUSER', 'ADMIN', 'STAFF', 'CUSTOMER'] and not user.is_superuser:
+    elif user.role not in ['SUPERUSER', 'ADMIN', 'STAFF', 'CUSTOMER', 'SUPERVISOR'] and not user.is_superuser:
         return HttpResponseForbidden("Access Denied")
         
     return render(request, 'core/inspection_detail.html', {
@@ -1661,12 +1809,12 @@ def perform_inspection(request, inspection_id):
     inspection = get_object_or_404(Inspection, id=inspection_id)
     
     if request.method == 'POST':
+        inspection.status = 'COMPLETED'
         form = InspectionPerformForm(request.POST, instance=inspection)
         if form.is_valid():
             insp = form.save(commit=False)
             insp.inspector = user
             insp.inspection_date = timezone.now().date()
-            insp.status = 'COMPLETED'
             insp.save()
             
             # Issue reporting with notification forms sent to Super Users and Admins
@@ -1682,12 +1830,44 @@ def perform_inspection(request, inspection_id):
             
             messages.success(request, f"Inspection for '{insp.project.title}' completed successfully!")
             return redirect('dashboard')
+        else:
+            inspection.status = 'SCHEDULED'
     else:
         form = InspectionPerformForm(instance=inspection)
         
+    limits = InspectionLimit.get_solo()
+        
     return render(request, 'core/perform_inspection.html', {
         'form': form,
-        'inspection': inspection
+        'inspection': inspection,
+        'limits': limits
+    })
+
+
+@login_required
+def supervisor_dashboard(request):
+    if request.user.role != 'SUPERVISOR':
+        return HttpResponseForbidden("Access Denied: Only Supervisors can access this dashboard.")
+        
+    limits = InspectionLimit.get_solo()
+    
+    if request.method == 'POST':
+        form = InspectionLimitForm(request.POST, instance=limits)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Validation limits updated successfully!")
+            return redirect('supervisor_dashboard')
+        else:
+            messages.error(request, "Failed to update validation limits. Please verify inputs.")
+    else:
+        form = InspectionLimitForm(instance=limits)
+        
+    inspections = Inspection.objects.all().order_by('-scheduled_date')
+    
+    return render(request, 'core/supervisor_dashboard.html', {
+        'form': form,
+        'limits': limits,
+        'inspections': inspections
     })
 
 

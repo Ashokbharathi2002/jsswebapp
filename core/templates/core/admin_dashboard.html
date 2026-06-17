@@ -1721,7 +1721,7 @@
                                         <th>Scheduled Date</th>
                                         <th>Performed Date</th>
                                         <th>Status</th>
-                                        <th class="text-end">Report</th>
+                                        <th class="text-end">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1733,31 +1733,12 @@
                                             </td>
                                             <td>{{ insp.project.customer.get_full_name|default:insp.project.customer.username }}</td>
                                             <td>
-                                                {% if insp.status == 'SCHEDULED' %}
-                                                    <form method="POST" class="d-flex align-items-center gap-1">
-                                                        {% csrf_token %}
-                                                        <input type="hidden" name="action" value="assign_inspector">
-                                                        <input type="hidden" name="inspection_id" value="{{ insp.id }}">
-                                                        <select name="inspector_id" class="form-select form-select-sm bg-black text-white border-secondary-subtle" style="width: auto; min-width: 140px; font-size: 0.75rem;" required>
-                                                            <option value="">-- Assign Staff --</option>
-                                                            {% for staff in all_staff %}
-                                                                <option value="{{ staff.id }}" {% if insp.inspector.id == staff.id %}selected{% endif %}>
-                                                                    {{ staff.get_full_name|default:staff.username }}
-                                                                </option>
-                                                            {% endfor %}
-                                                        </select>
-                                                        <button type="submit" class="btn btn-gold btn-sm px-2 py-1 text-white" title="Assign Inspector" style="font-size: 0.75rem;">
-                                                            <i class="bi bi-person-check-fill"></i>
-                                                        </button>
-                                                    </form>
+                                                {% if insp.inspector %}
+                                                    <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1">
+                                                        <i class="bi bi-person-fill me-1"></i> {{ insp.inspector.get_full_name|default:insp.inspector.username }}
+                                                    </span>
                                                 {% else %}
-                                                    {% if insp.inspector %}
-                                                        <span class="badge bg-success bg-opacity-20 text-success border border-success-subtle px-2 py-1">
-                                                            <i class="bi bi-person-fill me-1"></i> {{ insp.inspector.get_full_name|default:insp.inspector.username }}
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="text-secondary-50 italic">Unassigned</span>
-                                                    {% endif %}
+                                                    <span class="text-secondary-50 italic">Unassigned</span>
                                                 {% endif %}
                                             </td>
                                             <td class="text-white">{{ insp.scheduled_date|date:"M d, Y" }}</td>
@@ -1779,6 +1760,10 @@
                                                             <i class="bi bi-check-circle-fill me-1"></i> Completed
                                                         </span>
                                                     {% endif %}
+                                                {% elif insp.status == 'CANCELLED' %}
+                                                    <span class="badge bg-secondary bg-opacity-20 text-secondary border border-secondary px-2 py-1">
+                                                        <i class="bi bi-x-circle-fill me-1"></i> Cancelled
+                                                    </span>
                                                 {% else %}
                                                     <span class="badge bg-warning bg-opacity-20 text-warning border border-warning px-2 py-1">
                                                         <i class="bi bi-calendar-event me-1"></i> Scheduled
@@ -1786,11 +1771,137 @@
                                                 {% endif %}
                                             </td>
                                             <td class="text-end">
-                                                {% if insp.status == 'COMPLETED' %}
-                                                    <a href="{% url 'inspection_detail' insp.id %}" class="btn btn-outline-gold btn-sm action-btn-pill text-white"><i class="bi bi-eye me-1"></i>View Report</a>
-                                                {% else %}
-                                                    <span class="text-secondary-50 small italic">Awaiting Inspection</span>
-                                                {% endif %}
+                                                <div class="d-flex gap-2 justify-content-end align-items-center">
+                                                    {% if insp.status == 'COMPLETED' %}
+                                                        <a href="{% url 'inspection_detail' insp.id %}" class="btn btn-outline-gold btn-sm action-btn-pill text-white" title="View Report">
+                                                            <i class="bi bi-eye"></i> View
+                                                        </a>
+                                                    {% endif %}
+                                                    <button type="button" class="btn btn-outline-gold btn-sm action-btn-pill text-white" data-bs-toggle="collapse" data-bs-target="#editInspectionCollapse{{ insp.id }}" title="Edit Inspection">
+                                                        <i class="bi bi-pencil-fill"></i> Edit
+                                                    </button>
+                                                    {% if insp.status != 'CANCELLED' %}
+                                                        <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to cancel this inspection?');">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="action" value="cancel_inspection">
+                                                            <input type="hidden" name="inspection_id" value="{{ insp.id }}">
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm action-btn-pill text-white" title="Cancel Inspection">
+                                                                <i class="bi bi-x-circle-fill"></i> Cancel
+                                                            </button>
+                                                        </form>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <!-- Collapsible Edit Row -->
+                                        <tr>
+                                            <td colspan="7" class="p-0 border-0">
+                                                <div class="collapse" id="editInspectionCollapse{{ insp.id }}">
+                                                    <div class="card collapse-card p-4 my-2 mx-3 bg-black bg-opacity-40 border-warning border-opacity-25 text-start">
+                                                        <form method="POST">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="action" value="edit_inspection">
+                                                            <input type="hidden" name="inspection_id" value="{{ insp.id }}">
+                                                            
+                                                            <h6 class="fw-bold text-gradient-gold mb-3 small"><i class="bi bi-pencil-square me-1"></i> Edit Inspection for {{ insp.project.title }}</h6>
+                                                            
+                                                            <div class="row">
+                                                                <div class="col-md-3 mb-2">
+                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Scheduled Date</label>
+                                                                    <input type="date" name="scheduled_date" class="form-control form-control-sm bg-black text-white border-secondary-subtle" value="{{ insp.scheduled_date|date:'Y-m-d' }}" required>
+                                                                </div>
+                                                                <div class="col-md-3 mb-2">
+                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Actual Inspection Date</label>
+                                                                    <input type="date" name="inspection_date" class="form-control form-control-sm bg-black text-white border-secondary-subtle" value="{% if insp.inspection_date %}{{ insp.inspection_date|date:'Y-m-d' }}{% endif %}">
+                                                                </div>
+                                                                <div class="col-md-3 mb-2">
+                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Assigned Staff (Inspector)</label>
+                                                                    <select name="inspector_id" class="form-select form-select-sm bg-black text-white border-secondary-subtle">
+                                                                        <option value="">-- Unassigned --</option>
+                                                                        {% for staff in all_staff %}
+                                                                            <option value="{{ staff.id }}" {% if insp.inspector.id == staff.id %}selected{% endif %}>
+                                                                                {{ staff.get_full_name|default:staff.username }}
+                                                                            </option>
+                                                                        {% endfor %}
+                                                                    </select>
+                                                                </div>
+                                                                <div class="col-md-3 mb-2">
+                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Status</label>
+                                                                    <select name="status" class="form-select form-select-sm bg-black text-white border-secondary-subtle" required>
+                                                                        <option value="SCHEDULED" {% if insp.status == 'SCHEDULED' %}selected{% endif %}>Scheduled</option>
+                                                                        <option value="COMPLETED" {% if insp.status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                                                                        <option value="CANCELLED" {% if insp.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="row mt-3">
+                                                                <div class="col-12">
+                                                                    <span class="fw-bold text-white small d-block mb-2" style="font-size: 0.75rem;"><i class="bi bi-card-checklist me-1"></i> Safety Checklist Checks</span>
+                                                                    <div class="d-flex flex-wrap gap-3">
+                                                                        <div class="form-check form-check-inline">
+                                                                            <input class="form-check-input" type="checkbox" name="panel_check" id="panel_check{{ insp.id }}" {% if insp.panel_check %}checked{% endif %}>
+                                                                            <label class="form-check-label text-white small" style="font-size: 0.75rem;" for="panel_check{{ insp.id }}">Solar Panels Clean/Secure</label>
+                                                                        </div>
+                                                                        <div class="form-check form-check-inline">
+                                                                            <input class="form-check-input" type="checkbox" name="inverter_check" id="inverter_check{{ insp.id }}" {% if insp.inverter_check %}checked{% endif %}>
+                                                                            <label class="form-check-label text-white small" style="font-size: 0.75rem;" for="inverter_check{{ insp.id }}">Inverter Operating Correctly</label>
+                                                                        </div>
+                                                                        <div class="form-check form-check-inline">
+                                                                            <input class="form-check-input" type="checkbox" name="wiring_check" id="wiring_check{{ insp.id }}" {% if insp.wiring_check %}checked{% endif %}>
+                                                                            <label class="form-check-label text-white small" style="font-size: 0.75rem;" for="wiring_check{{ insp.id }}">Wiring/Connections Intact</label>
+                                                                        </div>
+                                                                        <div class="form-check form-check-inline">
+                                                                            <input class="form-check-input" type="checkbox" name="mounting_check" id="mounting_check{{ insp.id }}" {% if insp.mounting_check %}checked{% endif %}>
+                                                                            <label class="form-check-label text-white small" style="font-size: 0.75rem;" for="mounting_check{{ insp.id }}">Mounting Structure Stable</label>
+                                                                        </div>
+                                                                        <div class="form-check form-check-inline">
+                                                                            <input class="form-check-input" type="checkbox" name="performance_check" id="performance_check{{ insp.id }}" {% if insp.performance_check %}checked{% endif %}>
+                                                                            <label class="form-check-label text-white small" style="font-size: 0.75rem;" for="performance_check{{ insp.id }}">Performance Verified</label>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="row mt-3">
+                                                                <div class="col-md-3 mb-2">
+                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Panel DC Output (kW)</label>
+                                                                    <input type="number" step="0.01" name="panel_dc_output" class="form-control form-control-sm bg-black text-white border-secondary-subtle" value="{% if insp.panel_dc_output %}{{ insp.panel_dc_output }}{% endif %}">
+                                                                </div>
+                                                                <div class="col-md-3 mb-2">
+                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Inverter AC Output (kW)</label>
+                                                                    <input type="number" step="0.01" name="inverter_ac_output" class="form-control form-control-sm bg-black text-white border-secondary-subtle" value="{% if insp.inverter_ac_output %}{{ insp.inverter_ac_output }}{% endif %}">
+                                                                </div>
+                                                                <div class="col-md-3 mb-2">
+                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Wiring & Protection drop</label>
+                                                                    <input type="number" step="0.01" name="wiring_protection" class="form-control form-control-sm bg-black text-white border-secondary-subtle" value="{% if insp.wiring_protection %}{{ insp.wiring_protection }}{% endif %}">
+                                                                </div>
+                                                                <div class="col-md-3 mb-2">
+                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Earthing Resistance (ohms)</label>
+                                                                    <input type="number" step="0.01" name="earthing_resistance" class="form-control form-control-sm bg-black text-white border-secondary-subtle" value="{% if insp.earthing_resistance %}{{ insp.earthing_resistance }}{% endif %}">
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="row mt-3">
+                                                                <div class="col-md-3 mb-2">
+                                                                    <div class="form-check mt-4">
+                                                                        <input class="form-check-input" type="checkbox" name="has_issues" id="has_issues{{ insp.id }}" {% if insp.has_issues %}checked{% endif %}>
+                                                                        <label class="form-check-label text-white small" style="font-size: 0.75rem;" for="has_issues{{ insp.id }}">Issues Identified</label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-9 mb-2">
+                                                                    <label class="form-label text-white small" style="font-size: 0.75rem;">Issue Details</label>
+                                                                    <textarea name="issue_details" rows="2" class="form-control form-control-sm bg-black text-white border-secondary-subtle">{% if insp.issue_details %}{{ insp.issue_details }}{% endif %}</textarea>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="d-flex justify-content-end gap-2 mt-3">
+                                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#editInspectionCollapse{{ insp.id }}">Cancel</button>
+                                                                <button type="submit" class="btn btn-gold btn-sm text-white px-3"><i class="bi bi-save me-1"></i> Save Changes</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     {% endfor %}

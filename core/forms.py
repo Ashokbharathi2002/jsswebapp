@@ -1,5 +1,5 @@
 from django import forms
-from .models import CustomUser, SolarInstallationProject, Complaint, Quotation, ProjectExpense, LeaveRequest, Inspection, Inverter
+from .models import CustomUser, SolarInstallationProject, Complaint, Quotation, ProjectExpense, LeaveRequest, Inspection, Inverter, InspectionLimit
 
 class CustomerSignUpForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
@@ -225,6 +225,8 @@ class InspectionPerformForm(forms.ModelForm):
         fields = [
             'panel_check', 'inverter_check', 'wiring_check', 
             'mounting_check', 'performance_check', 
+            'panel_dc_output', 'inverter_ac_output', 
+            'wiring_protection', 'earthing_resistance',
             'has_issues', 'issue_details'
         ]
         widgets = {
@@ -233,8 +235,33 @@ class InspectionPerformForm(forms.ModelForm):
             'wiring_check': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'mounting_check': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'performance_check': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'panel_dc_output': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'e.g. 350.00'}),
+            'inverter_ac_output': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'e.g. 345.00'}),
+            'wiring_protection': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'e.g. 0.98'}),
+            'earthing_resistance': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'e.g. 1.50'}),
             'has_issues': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_has_issues'}),
             'issue_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Describe any issues encountered during inspection...'}),
+        }
+
+
+class InspectionLimitForm(forms.ModelForm):
+    class Meta:
+        model = InspectionLimit
+        fields = [
+            'panel_dc_min', 'panel_dc_max',
+            'inverter_ac_min', 'inverter_ac_max',
+            'wiring_protection_min', 'wiring_protection_max',
+            'earthing_resistance_min', 'earthing_resistance_max'
+        ]
+        widgets = {
+            'panel_dc_min': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'panel_dc_max': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'inverter_ac_min': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'inverter_ac_max': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'wiring_protection_min': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'wiring_protection_max': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'earthing_resistance_min': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'earthing_resistance_max': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
         }
 
 

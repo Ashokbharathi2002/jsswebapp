@@ -71,6 +71,49 @@
                     </div>
                 </div>
 
+                <h5 class="fw-bold text-gradient-gold mb-3"><i class="bi bi-speedometer me-1"></i> Measured Safety Values</h5>
+                <div class="bg-black bg-opacity-20 p-3 rounded-4 mb-4 border border-white-50 border-opacity-5">
+                    <!-- Solar Panel DC Output -->
+                    <div class="mb-3">
+                        <label class="form-label text-white small fw-semibold">Solar Panel DC Output (kW)</label>
+                        <div class="input-group">
+                            {{ form.panel_dc_output }}
+                            <button class="btn btn-outline-gold ocr-scan-btn" type="button" data-field="id_panel_dc_output" title="Scan Solar Panel DC Output"><i class="bi bi-camera-fill me-1"></i> Scan</button>
+                        </div>
+                        <small class="text-secondary-50 mt-1 d-block" style="font-size: 0.75rem;">Allowed validation range: <strong>{{ limits.panel_dc_min }}</strong> to <strong>{{ limits.panel_dc_max }}</strong> kW</small>
+                    </div>
+
+                    <!-- Inverter AC Output -->
+                    <div class="mb-3">
+                        <label class="form-label text-white small fw-semibold">Inverter & AC Output (kW)</label>
+                        <div class="input-group">
+                            {{ form.inverter_ac_output }}
+                            <button class="btn btn-outline-gold ocr-scan-btn" type="button" data-field="id_inverter_ac_output" title="Scan Inverter & AC Output"><i class="bi bi-camera-fill me-1"></i> Scan</button>
+                        </div>
+                        <small class="text-secondary-50 mt-1 d-block" style="font-size: 0.75rem;">Allowed validation range: <strong>{{ limits.inverter_ac_min }}</strong> to <strong>{{ limits.inverter_ac_max }}</strong> kW</small>
+                    </div>
+
+                    <!-- Wiring & Protections -->
+                    <div class="mb-3">
+                        <label class="form-label text-white small fw-semibold">Wiring and Protections Drop</label>
+                        <div class="input-group">
+                            {{ form.wiring_protection }}
+                            <button class="btn btn-outline-gold ocr-scan-btn" type="button" data-field="id_wiring_protection" title="Scan Wiring and Protections"><i class="bi bi-camera-fill me-1"></i> Scan</button>
+                        </div>
+                        <small class="text-secondary-50 mt-1 d-block" style="font-size: 0.75rem;">Allowed validation range: <strong>{{ limits.wiring_protection_min }}</strong> to <strong>{{ limits.wiring_protection_max }}</strong></small>
+                    </div>
+
+                    <!-- Earthing Resistance -->
+                    <div class="mb-3">
+                        <label class="form-label text-white small fw-semibold">Earthing Resistance (ohms)</label>
+                        <div class="input-group">
+                            {{ form.earthing_resistance }}
+                            <button class="btn btn-outline-gold ocr-scan-btn" type="button" data-field="id_earthing_resistance" title="Scan Earthing Resistance"><i class="bi bi-camera-fill me-1"></i> Scan</button>
+                        </div>
+                        <small class="text-secondary-50 mt-1 d-block" style="font-size: 0.75rem;">Allowed validation range: <strong>{{ limits.earthing_resistance_min }}</strong> to <strong>{{ limits.earthing_resistance_max }}</strong> ohms</small>
+                    </div>
+                </div>
+
                 <h5 class="fw-bold text-gradient-gold mb-3"><i class="bi bi-exclamation-triangle-fill me-1"></i> Issue Reporting</h5>
                 <div class="bg-black bg-opacity-20 p-3 rounded-4 mb-4 border border-white-50 border-opacity-5">
                     <div class="form-check mb-3">
@@ -94,9 +137,103 @@
         </div>
     </div>
 </div>
+
+<!-- OCR Scanning Modal -->
+<div class="modal fade" id="ocrScanModal" tabindex="-1" aria-labelledby="ocrScanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card text-white" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
+            <div class="modal-header border-bottom border-white-50 border-opacity-10">
+                <h5 class="modal-title fw-bold" id="ocrScanModalLabel"><i class="bi bi-camera-fill text-gradient-gold me-2"></i> Solar Parameter OCR Scanner</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="btnOcrCloseHeader"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="text-secondary small mb-3">Position the meter reading clearly inside the camera frame or upload a clear photo.</p>
+                
+                <!-- Live Video Element -->
+                <div class="position-relative overflow-hidden rounded-3 bg-black mb-3 d-none" id="ocrVideoContainer" style="min-height: 240px;">
+                    <video id="ocrVideo" class="w-100" style="max-height: 320px;" autoplay playsinline></video>
+                    <div class="scan-laser-sweep"></div>
+                </div>
+                
+                <!-- Canvas & Image Element -->
+                <canvas id="ocrCanvas" style="display: none;"></canvas>
+                <img id="ocrImgPreview" class="w-100 rounded-3 img-fluid d-none mb-3" style="max-height: 320px;" alt="Scan Preview">
+                
+                <!-- OCR Spinner/Loader -->
+                <div id="ocrLoading" class="text-center py-4 d-none">
+                    <div class="spinner-border text-gold mb-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="text-white small fw-bold">Processing OCR Engine (Tesseract.js)...</div>
+                    <div class="scan-line-laser mt-3"></div>
+                </div>
+                
+                <!-- OCR Extracted Results -->
+                <div id="ocrResults" class="text-start d-none">
+                    <label class="text-secondary small fw-semibold d-block mb-2"><i class="bi bi-patch-check-fill text-success"></i> Identified Numbers (Tap to select & fill):</label>
+                    <div id="ocrNumbersList" class="d-flex flex-wrap gap-2 py-2"></div>
+                </div>
+                
+                <!-- Hidden inputs -->
+                <input type="file" id="ocrFileInput" accept="image/*" capture="environment" style="display: none;">
+            </div>
+            <div class="modal-footer border-top border-white-50 border-opacity-10 justify-content-between">
+                <div>
+                    <button type="button" class="btn btn-outline-light btn-sm" id="btnOcrUpload"><i class="bi bi-upload me-1"></i> Upload Photo</button>
+                    <button type="button" class="btn btn-outline-gold btn-sm d-none" id="btnOcrCapture"><i class="bi bi-camera me-1"></i> Capture</button>
+                    <button type="button" class="btn btn-outline-gold btn-sm" id="btnOcrLiveStream"><i class="bi bi-camera-reels me-1"></i> Live Stream</button>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="btnOcrCloseFooter">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .scan-line-laser {
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+        position: relative;
+        animation: laser-sweep 2s infinite ease-in-out;
+    }
+    @keyframes laser-sweep {
+        0% { top: 0%; }
+        50% { top: 100%; }
+        100% { top: 0%; }
+    }
+    .scan-laser-sweep {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to bottom, rgba(16, 185, 129, 0) 0%, rgba(16, 185, 129, 0.15) 50%, rgba(16, 185, 129, 0) 100%);
+        animation: scan-sweep 2.5s infinite linear;
+        pointer-events: none;
+        border-top: 2px solid var(--accent-gold);
+    }
+    @keyframes scan-sweep {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+    }
+    .text-gold {
+        color: var(--accent-gold) !important;
+    }
+    .btn-outline-gold {
+        border-color: var(--accent-gold) !important;
+        color: var(--accent-gold) !important;
+    }
+    .btn-outline-gold:hover {
+        background-color: var(--accent-gold) !important;
+        color: #050811 !important;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
+<!-- Tesseract OCR CDN -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const hasIssuesCheck = document.getElementById("id_has_issues");
@@ -104,12 +241,12 @@
         const issueDetailsInput = document.querySelector("#issueDetailsContainer textarea");
 
         function toggleContainer() {
-            if (hasIssuesCheck.checked) {
+            if (hasIssuesCheck && hasIssuesCheck.checked) {
                 detailsContainer.style.display = "block";
                 if (issueDetailsInput) {
                     issueDetailsInput.setAttribute("required", "required");
                 }
-            } else {
+            } else if (detailsContainer) {
                 detailsContainer.style.display = "none";
                 if (issueDetailsInput) {
                     issueDetailsInput.removeAttribute("required");
@@ -120,6 +257,259 @@
         if (hasIssuesCheck) {
             hasIssuesCheck.addEventListener("change", toggleContainer);
             toggleContainer(); // Run initial state check
+        }
+
+        // --- OCR SCANNING IMPLEMENTATION ---
+        let activeOcrTarget = null;
+        let stream = null;
+        const ocrModal = new bootstrap.Modal(document.getElementById('ocrScanModal'));
+        const ocrFileInput = document.getElementById('ocrFileInput');
+        const ocrVideo = document.getElementById('ocrVideo');
+        const ocrVideoContainer = document.getElementById('ocrVideoContainer');
+        const ocrImgPreview = document.getElementById('ocrImgPreview');
+        const ocrLoading = document.getElementById('ocrLoading');
+        const ocrResults = document.getElementById('ocrResults');
+        const ocrNumbersList = document.getElementById('ocrNumbersList');
+        const ocrCanvas = document.getElementById('ocrCanvas');
+        
+        const btnLiveStream = document.getElementById('btnOcrLiveStream');
+        const btnCapture = document.getElementById('btnOcrCapture');
+        const btnUpload = document.getElementById('btnOcrUpload');
+
+        // Hook up scan buttons
+        document.querySelectorAll('.ocr-scan-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                activeOcrTarget = document.getElementById(this.getAttribute('data-field'));
+                resetOcrModal();
+                ocrModal.show();
+            });
+        });
+
+        function resetOcrModal() {
+            stopVideoStream();
+            ocrFileInput.value = '';
+            ocrVideoContainer.classList.add('d-none');
+            ocrImgPreview.classList.add('d-none');
+            ocrLoading.classList.add('d-none');
+            ocrResults.classList.add('d-none');
+            ocrNumbersList.innerHTML = '';
+            btnCapture.classList.add('d-none');
+            btnLiveStream.classList.remove('d-none');
+        }
+
+        // Live streaming WebRTC
+        btnLiveStream.addEventListener('click', function() {
+            ocrImgPreview.classList.add('d-none');
+            ocrResults.classList.add('d-none');
+            ocrLoading.classList.add('d-none');
+            
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(s => {
+                    stream = s;
+                    ocrVideo.srcObject = stream;
+                    ocrVideoContainer.classList.remove('d-none');
+                    btnCapture.classList.remove('d-none');
+                    btnLiveStream.classList.add('d-none');
+                })
+                .catch(err => {
+                    alert("Unable to access live camera stream. Please use 'Upload Photo' directly instead.");
+                    console.error("Camera access error:", err);
+                });
+        });
+
+        // Capture frame from stream
+        btnCapture.addEventListener('click', function() {
+            if (!stream) return;
+            
+            const context = ocrCanvas.getContext('2d');
+            ocrCanvas.width = ocrVideo.videoWidth;
+            ocrCanvas.height = ocrVideo.videoHeight;
+            context.drawImage(ocrVideo, 0, 0, ocrCanvas.width, ocrCanvas.height);
+            
+            const dataUrl = ocrCanvas.toDataURL('image/png');
+            ocrImgPreview.src = dataUrl;
+            ocrImgPreview.classList.remove('d-none');
+            
+            stopVideoStream();
+            ocrVideoContainer.classList.add('d-none');
+            btnCapture.classList.add('d-none');
+            
+            const preprocessedDataUrl = preprocessImageForOcr(ocrCanvas);
+            runOcrRecognition(preprocessedDataUrl);
+        });
+
+        // Trigger file input upload/capture
+        btnUpload.addEventListener('click', function() {
+            stopVideoStream();
+            ocrVideoContainer.classList.add('d-none');
+            btnCapture.classList.add('d-none');
+            btnLiveStream.classList.remove('d-none');
+            ocrFileInput.click();
+        });
+
+        // Handle file select / camera pic capture
+        ocrFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                ocrImgPreview.src = event.target.result;
+                ocrImgPreview.classList.remove('d-none');
+                
+                // Wait for the preview image to load before preprocessing and running OCR
+                ocrImgPreview.onload = function() {
+                    ocrImgPreview.onload = null;
+                    const preprocessedDataUrl = preprocessImageForOcr(ocrImgPreview);
+                    runOcrRecognition(preprocessedDataUrl);
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function stopVideoStream() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            ocrVideo.srcObject = null;
+        }
+
+        // Clean up stream on modal close
+        document.getElementById('ocrScanModal').addEventListener('hidden.bs.modal', stopVideoStream);
+        document.getElementById('btnOcrCloseHeader').addEventListener('click', stopVideoStream);
+        document.getElementById('btnOcrCloseFooter').addEventListener('click', stopVideoStream);
+
+        // Preprocess image to improve OCR accuracy for digital screens / multimeters
+        function preprocessImageForOcr(imgOrCanvas) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Get dimensions
+            const width = imgOrCanvas.naturalWidth || imgOrCanvas.width || imgOrCanvas.videoWidth || 640;
+            const height = imgOrCanvas.naturalHeight || imgOrCanvas.height || imgOrCanvas.videoHeight || 480;
+            
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(imgOrCanvas, 0, 0);
+            
+            try {
+                const imgData = ctx.getImageData(0, 0, width, height);
+                const data = imgData.data;
+                
+                // 1. Convert to grayscale and find min/max brightness
+                let min = 255;
+                let max = 0;
+                const grays = new Uint8Array(width * height);
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    // Standard luminosity formula
+                    const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+                    grays[i / 4] = gray;
+                    if (gray < min) min = gray;
+                    if (gray > max) max = gray;
+                }
+                
+                // 2. Thresholding: dark pixels become black, light pixels become white.
+                // If contrast is too low (e.g. max - min < 30), we don't threshold to avoid pure noise.
+                const hasContrast = (max - min) > 30;
+                // Multimeter displays have dark digits on a light background.
+                // We use a threshold value. A good midpoint is 45% of the range.
+                const threshold = min + (max - min) * 0.45;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    const idx = i / 4;
+                    let val = grays[idx];
+                    if (hasContrast) {
+                        val = val < threshold ? 0 : 255;
+                    }
+                    data[i] = val;
+                    data[i + 1] = val;
+                    data[i + 2] = val;
+                }
+                ctx.putImageData(imgData, 0, 0);
+                return canvas.toDataURL('image/png');
+            } catch (e) {
+                console.error("Preprocessing error (falling back to original source):", e);
+                if (imgOrCanvas instanceof HTMLCanvasElement) {
+                    return imgOrCanvas.toDataURL('image/png');
+                } else if (imgOrCanvas instanceof HTMLImageElement) {
+                    return imgOrCanvas.src;
+                }
+                return imgOrCanvas;
+            }
+        }
+
+        // Run Tesseract OCR
+        async function runOcrRecognition(imageSource) {
+            ocrLoading.classList.remove('d-none');
+            ocrResults.classList.add('d-none');
+            ocrNumbersList.innerHTML = '';
+            
+            try {
+                const worker = await Tesseract.createWorker('eng', 1, {
+                    logger: m => console.log(m)
+                });
+                
+                // Limit Tesseract output to characters representing numbers and signs
+                await worker.setParameters({
+                    tessedit_char_whitelist: '0123456789.+- '
+                });
+                
+                const { data: { text } } = await worker.recognize(imageSource);
+                await worker.terminate();
+                
+                ocrLoading.classList.add('d-none');
+                processOcrText(text);
+            } catch (err) {
+                console.error("OCR Error:", err);
+                ocrLoading.classList.add('d-none');
+                alert("Failed to parse text. Please try again with a clearer picture.");
+            }
+        }
+
+        // Extracted numbers selection
+        function processOcrText(text) {
+            console.log("OCR Recognized Text before processing:", text);
+            
+            // Normalize all types of dashes/minus signs to standard ASCII hyphen-minus
+            let normalizedText = text.replace(/[\u2012\u2013\u2014\u2015\u2212]/g, '-');
+            
+            // Remove space between sign and digits (e.g. "- 011" -> "-011")
+            normalizedText = normalizedText.replace(/([+-])\s+(\d)/g, '$1$2');
+            
+            console.log("OCR Normalized Text:", normalizedText);
+            
+            // Match integers and floats (optionally with signs)
+            const numberRegex = /[+-]?\b\d+(?:\.\d+)?\b/g;
+            const matches = normalizedText.match(numberRegex) || [];
+            
+            // Remove duplicates
+            const uniqueNumbers = [...new Set(matches)];
+            
+            if (uniqueNumbers.length === 0) {
+                ocrNumbersList.innerHTML = '<span class="text-danger small">No valid numbers found in the image. Try taking another photo.</span>';
+            } else {
+                uniqueNumbers.forEach(num => {
+                    const pill = document.createElement('button');
+                    pill.type = 'button';
+                    pill.className = 'btn btn-outline-gold btn-sm px-3 py-1.5 fw-bold';
+                    pill.textContent = num;
+                    pill.addEventListener('click', function() {
+                        if (activeOcrTarget) {
+                            activeOcrTarget.value = num;
+                            // Trigger change/input events for Django forms clean
+                            activeOcrTarget.dispatchEvent(new Event('input', { bubbles: true }));
+                            activeOcrTarget.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        ocrModal.hide();
+                    });
+                    ocrNumbersList.appendChild(pill);
+                });
+            }
+            ocrResults.classList.remove('d-none');
         }
     });
 </script>

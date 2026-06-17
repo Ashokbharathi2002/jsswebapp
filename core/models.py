@@ -6,6 +6,7 @@ class CustomUser(AbstractUser):
     ROLE_CHOICES = (
         ('SUPERUSER', 'Super User'),
         ('ADMIN', 'Admin'),
+        ('SUPERVISOR', 'Supervisor'),
         ('STAFF', 'Staff'),
         ('EMPLOYEE', 'Employee'),
         ('CUSTOMER', 'Customer'),
@@ -376,6 +377,7 @@ class Inspection(models.Model):
     STATUS_CHOICES = (
         ('SCHEDULED', 'Scheduled'),
         ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
     )
     project = models.ForeignKey(
         SolarInstallationProject, 
@@ -400,6 +402,12 @@ class Inspection(models.Model):
     mounting_check = models.BooleanField(default=False, verbose_name="Mounting structure stable")
     performance_check = models.BooleanField(default=False, verbose_name="System performance verified")
     
+    # Measured Values
+    panel_dc_output = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text="Measured Solar Panel DC Output (kW)")
+    inverter_ac_output = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text="Measured Inverter AC Output (kW)")
+    wiring_protection = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text="Measured Wiring & Protection drop/value")
+    earthing_resistance = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text="Measured Earthing Resistance (ohms)")
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SCHEDULED')
     
     # Issue reporting
@@ -412,5 +420,57 @@ class Inspection(models.Model):
     class Meta:
         ordering = ['-scheduled_date']
 
+    def clean(self):
+        super().clean()
+        if self.status == 'COMPLETED':
+            limits = InspectionLimit.get_solo()
+            
+            # Check Panel DC Output
+            if self.panel_dc_output is not None:
+                if self.panel_dc_output < limits.panel_dc_min or self.panel_dc_output > limits.panel_dc_max:
+                    raise ValidationError({
+                        'panel_dc_output': f"Solar Panel DC Output ({self.panel_dc_output} kW) must be between {limits.panel_dc_min} and {limits.panel_dc_max} kW."
+                    })
+            
+            # Check Inverter AC Output
+            if self.inverter_ac_output is not None:
+                if self.inverter_ac_output < limits.inverter_ac_min or self.inverter_ac_output > limits.inverter_ac_max:
+                    raise ValidationError({
+                        'inverter_ac_output': f"Inverter AC Output ({self.inverter_ac_output} kW) must be between {limits.inverter_ac_min} and {limits.inverter_ac_max} kW."
+                    })
+            
+            # Check Wiring & Protection
+            if self.wiring_protection is not None:
+                if self.wiring_protection < limits.wiring_protection_min or self.wiring_protection > limits.wiring_protection_max:
+                    raise ValidationError({
+                        'wiring_protection': f"Wiring and Protections ({self.wiring_protection}) must be between {limits.wiring_protection_min} and {limits.wiring_protection_max}."
+                    })
+            
+            # Check Earthing Resistance
+            if self.earthing_resistance is not None:
+                if self.earthing_resistance < limits.earthing_resistance_min or self.earthing_resistance > limits.earthing_resistance_max:
+                    raise ValidationError({
+                        'earthing_resistance': f"Earthing Resistance ({self.earthing_resistance} ohms) must be between {limits.earthing_resistance_min} and {limits.earthing_resistance_max} ohms."
+                    })
+
     def __str__(self):
         return f"6-Month Inspection for {self.project.title} ({self.get_status_display()})"
+
+
+class InspectionLimit(models.Model):
+    panel_dc_min = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    panel_dc_max = models.DecimalField(max_digits=10, decimal_places=2, default=1000.00)
+    inverter_ac_min = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    inverter_ac_max = models.DecimalField(max_digits=10, decimal_places=2, default=1000.00)
+    wiring_protection_min = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    wiring_protection_max = models.DecimalField(max_digits=10, decimal_places=2, default=1000.00)
+    earthing_resistance_min = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    earthing_resistance_max = models.DecimalField(max_digits=10, decimal_places=2, default=10.00)
+
+    @classmethod
+    def get_solo(cls):
+        obj, created = cls.objects.get_or_create(id=1)
+        return obj
+
+    def __str__(self):
+        return "Supervisor Inspection Limits Configuration"

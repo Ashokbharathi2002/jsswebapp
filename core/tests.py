@@ -991,5 +991,304 @@ class InspectionWorkflowTests(TestCase):
         self.assertEqual(inspection.inspector, self.staff)
 
 
+class SupervisorTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.supervisor = User.objects.create_user(
+            username="supervisoruser",
+            email="supervisor@test.com",
+            password="supervisorpassword",
+            role="SUPERVISOR",
+            is_approved=True
+        )
+        self.superuser = User.objects.create_superuser(
+            username="superuseruser",
+            email="superuser@test.com",
+            password="superuserpassword",
+            role="SUPERUSER",
+            is_approved=True
+        )
+        self.admin = User.objects.create_user(
+            username="adminuser",
+            email="admin@test.com",
+            password="adminpassword",
+            role="ADMIN",
+            is_approved=True
+        )
+        self.staff = User.objects.create_user(
+            username="staffuser",
+            email="staff@test.com",
+            password="staffpassword",
+            role="STAFF",
+            is_approved=True
+        )
+        self.customer = User.objects.create_user(
+            username="customeruser",
+            email="customer@test.com",
+            password="customerpassword",
+            role="CUSTOMER",
+            is_approved=True
+        )
+        self.project = SolarInstallationProject.objects.create(
+            customer=self.customer,
+            staff_incharge=self.staff,
+            title="Inspection Test Project",
+            status="SITE_SURVEY",
+            total_value=150000.00,
+            advances_paid=50000.00,
+            start_date="2026-05-01",
+            end_date="2026-05-30"
+        )
+        # Create inverter details so project can be completed
+        inverter = self.project.inverter
+        inverter.brand = "Sungrow"
+        inverter.model = "SG5.0RS"
+        inverter.serial_number = "SN12345678"
+        inverter.capacity = Decimal("5.00")
+        inverter.save()
+        self.project.status = "COMPLETED"
+        self.project.save()
+        
+        self.inspection = Inspection.objects.get(project=self.project)
+
+    def test_supervisor_dashboard_redirect(self):
+        """Verify supervisor logs in and redirects to supervisor dashboard."""
+        self.client.login(username="supervisoruser", password="supervisorpassword")
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('supervisor_dashboard'))
+
+    def test_only_supervisor_can_define_limits(self):
+        """Verify only Supervisor can access and submit supervisor_dashboard to define limits."""
+        # 1. Accessing supervisor_dashboard by non-supervisors should be forbidden
+        self.client.login(username="staffuser", password="staffpassword")
+        response = self.client.get(reverse('supervisor_dashboard'))
+        self.assertEqual(response.status_code, 403)
+        
+        self.client.login(username="adminuser", password="adminpassword")
+        response = self.client.get(reverse('supervisor_dashboard'))
+        self.assertEqual(response.status_code, 403)
+
+        # 2. Accessing supervisor_dashboard by Supervisor should be allowed
+        self.client.login(username="supervisoruser", password="supervisorpassword")
+        response = self.client.get(reverse('supervisor_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'core/supervisor_dashboard.html')
+
+        # 3. Defining limits by Supervisor
+        response = self.client.post(reverse('supervisor_dashboard'), {
+            'panel_dc_min': '300.00',
+            'panel_dc_max': '500.00',
+            'inverter_ac_min': '290.00',
+            'inverter_ac_max': '490.00',
+            'wiring_protection_min': '0.90',
+            'wiring_protection_max': '1.00',
+            'earthing_resistance_min': '1.00',
+            'earthing_resistance_max': '2.00',
+        })
+        self.assertEqual(response.status_code, 302) # redirects to dashboard
+        
+        # Verify in DB
+        from core.models import InspectionLimit
+        limits = InspectionLimit.get_solo()
+        self.assertEqual(limits.panel_dc_min, Decimal('300.00'))
+        self.assertEqual(limits.panel_dc_max, Decimal('500.00'))
+
+    def test_staff_perform_inspection_validation_ranges(self):
+        """Verify inspection validations reject measurements outside supervisor-defined ranges."""
+        # Define validation ranges
+        from core.models import InspectionLimit
+        limits = InspectionLimit.get_solo()
+        limits.panel_dc_min = Decimal('300.00')
+        limits.panel_dc_max = Decimal('500.00')
+        limits.inverter_ac_min = Decimal('290.00')
+        limits.inverter_ac_max = Decimal('490.00')
+        limits.wiring_protection_min = Decimal('0.90')
+        limits.wiring_protection_max = Decimal('1.00')
+        limits.earthing_resistance_min = Decimal('1.00')
+        limits.earthing_resistance_max = Decimal('2.00')
+        limits.save()
+
+        # Log in as Staff to perform inspection
+        self.client.login(username="staffuser", password="staffpassword")
+
+        # 1. Invalid DC output (too low: 250.00)
+        response = self.client.post(reverse('perform_inspection', args=[self.inspection.id]), {
+            'panel_check': True,
+            'inverter_check': True,
+            'wiring_check': True,
+            'mounting_check': True,
+            'performance_check': True,
+            'panel_dc_output': '250.00',
+            'inverter_ac_output': '350.00',
+            'wiring_protection': '0.95',
+            'earthing_resistance': '1.50',
+        })
+        # Form should not submit/redirect because of ValidationError
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(self.inspection.status == 'COMPLETED')
+
+        # 2. Valid measurements
+        response = self.client.post(reverse('perform_inspection', args=[self.inspection.id]), {
+            'panel_check': True,
+            'inverter_check': True,
+            'wiring_check': True,
+            'mounting_check': True,
+            'performance_check': True,
+            'panel_dc_output': '350.00',
+            'inverter_ac_output': '350.00',
+            'wiring_protection': '0.95',
+            'earthing_resistance': '1.50',
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify in DB
+        self.inspection.refresh_from_db()
+        self.assertEqual(self.inspection.status, 'COMPLETED')
+        self.assertEqual(self.inspection.panel_dc_output, Decimal('350.00'))
+
+    def test_inspection_detail_reports_visibility(self):
+        """Verify report viewing permissions for Super Users, Admins, Staff, Clients, and Supervisors."""
+        # 1. Superuser
+        self.client.login(username="superuseruser", password="superuserpassword")
+        response = self.client.get(reverse('inspection_detail', args=[self.inspection.id]))
+        self.assertEqual(response.status_code, 200)
+
+        # 2. Admin
+        self.client.login(username="adminuser", password="adminpassword")
+        response = self.client.get(reverse('inspection_detail', args=[self.inspection.id]))
+        self.assertEqual(response.status_code, 200)
+
+        # 3. Staff
+        self.client.login(username="staffuser", password="staffpassword")
+        response = self.client.get(reverse('inspection_detail', args=[self.inspection.id]))
+        self.assertEqual(response.status_code, 200)
+
+        # 4. Supervisor
+        self.client.login(username="supervisoruser", password="supervisorpassword")
+        response = self.client.get(reverse('inspection_detail', args=[self.inspection.id]))
+        self.assertEqual(response.status_code, 200)
+
+        # 5. Client / Customer (Owner of project)
+        self.client.login(username="customeruser", password="customerpassword")
+        response = self.client.get(reverse('inspection_detail', args=[self.inspection.id]))
+        self.assertEqual(response.status_code, 200)
+
+        # 6. Other Client / Customer (Not owner)
+        other_customer = User.objects.create_user(
+            username="othercustomer",
+            email="other@test.com",
+            password="otherpassword",
+            role="CUSTOMER",
+            is_approved=True
+        )
+        self.client.login(username="othercustomer", password="otherpassword")
+        response = self.client.get(reverse('inspection_detail', args=[self.inspection.id]))
+        self.assertEqual(response.status_code, 403)
+
+    def test_superuser_and_admin_edit_inspection(self):
+        """Verify Superuser and Admin can edit all fields of an inspection."""
+        other_staff = User.objects.create_user(
+            username="otherstaff",
+            email="otherstaff@test.com",
+            password="otherstaffpassword",
+            role="STAFF",
+            is_approved=True
+        )
+        
+        # 1. Test Superuser edit
+        self.client.login(username="superuseruser", password="superuserpassword")
+        post_data = {
+            'action': 'edit_inspection',
+            'inspection_id': self.inspection.id,
+            'scheduled_date': '2026-07-01',
+            'inspection_date': '2026-07-02',
+            'inspector_id': other_staff.id,
+            'status': 'COMPLETED',
+            'panel_check': 'on',
+            'inverter_check': 'on',
+            'wiring_check': 'on',
+            'mounting_check': 'on',
+            'performance_check': 'on',
+            'panel_dc_output': '5.00',
+            'inverter_ac_output': '4.80',
+            'wiring_protection': '0.90',
+            'earthing_resistance': '1.50',
+            'has_issues': 'on',
+            'issue_details': 'Updated details'
+        }
+        response = self.client.post(reverse('superuser_dashboard'), post_data)
+        self.assertEqual(response.status_code, 302)
+        self.inspection.refresh_from_db()
+        self.assertEqual(self.inspection.scheduled_date.strftime('%Y-%m-%d'), '2026-07-01')
+        self.assertEqual(self.inspection.inspection_date.strftime('%Y-%m-%d'), '2026-07-02')
+        self.assertEqual(self.inspection.inspector, other_staff)
+        self.assertEqual(self.inspection.status, 'COMPLETED')
+        self.assertTrue(self.inspection.panel_check)
+        self.assertEqual(self.inspection.panel_dc_output, Decimal('5.00'))
+        self.assertEqual(self.inspection.issue_details, 'Updated details')
+
+        # 2. Test Admin edit
+        self.client.login(username="adminuser", password="adminpassword")
+        post_data['scheduled_date'] = '2026-08-01'
+        post_data['inspection_date'] = '2026-08-02'
+        post_data['inspector_id'] = self.staff.id
+        post_data['panel_dc_output'] = '8.00'
+        post_data['issue_details'] = 'Admin updated details'
+        response = self.client.post(reverse('admin_dashboard'), post_data)
+        self.assertEqual(response.status_code, 302)
+        self.inspection.refresh_from_db()
+        self.assertEqual(self.inspection.scheduled_date.strftime('%Y-%m-%d'), '2026-08-01')
+        self.assertEqual(self.inspection.inspection_date.strftime('%Y-%m-%d'), '2026-08-02')
+        self.assertEqual(self.inspection.inspector, self.staff)
+        self.assertEqual(self.inspection.panel_dc_output, Decimal('8.00'))
+        self.assertEqual(self.inspection.issue_details, 'Admin updated details')
+
+    def test_superuser_and_admin_cancel_inspection(self):
+        """Verify Superuser and Admin can cancel an inspection."""
+        # 1. Test Admin cancel
+        self.client.login(username="adminuser", password="adminpassword")
+        response = self.client.post(reverse('admin_dashboard'), {
+            'action': 'cancel_inspection',
+            'inspection_id': self.inspection.id
+        })
+        self.assertEqual(response.status_code, 302)
+        self.inspection.refresh_from_db()
+        self.assertEqual(self.inspection.status, 'CANCELLED')
+        self.assertIsNone(self.inspection.inspection_date)
+
+        # Reset status
+        self.inspection.status = 'SCHEDULED'
+        self.inspection.save()
+
+        # 2. Test Superuser cancel
+        self.client.login(username="superuseruser", password="superuserpassword")
+        response = self.client.post(reverse('superuser_dashboard'), {
+            'action': 'cancel_inspection',
+            'inspection_id': self.inspection.id
+        })
+        self.assertEqual(response.status_code, 302)
+        self.inspection.refresh_from_db()
+        self.assertEqual(self.inspection.status, 'CANCELLED')
+
+    def test_edit_inspection_validation_limits(self):
+        """Verify validation limits are enforced when admin/superuser edits a completed inspection."""
+        self.client.login(username="superuseruser", password="superuserpassword")
+        
+        # In setup, earthing_resistance_max is 10.00 ohms. Let's submit 12.00 ohms.
+        post_data = {
+            'action': 'edit_inspection',
+            'inspection_id': self.inspection.id,
+            'scheduled_date': '2026-07-01',
+            'status': 'COMPLETED',
+            'earthing_resistance': '12.00'
+        }
+        # The form should fail validation and the value in DB should not be updated.
+        response = self.client.post(reverse('superuser_dashboard'), post_data)
+        self.assertEqual(response.status_code, 302)
+        self.inspection.refresh_from_db()
+        self.assertNotEqual(self.inspection.earthing_resistance, Decimal('12.00'))
+
+
 
 
