@@ -9,7 +9,7 @@ class CustomUser(AbstractUser):
         ('SUPERVISOR', 'Supervisor'),
         ('STAFF', 'Staff'),
         ('EMPLOYEE', 'Employee'),
-        ('CUSTOMER', 'Customer'),
+        ('CUSTOMER', 'Client'),
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='CUSTOMER')
     is_approved = models.BooleanField(default=False)  # Admin must approve customers before they can log in
@@ -18,8 +18,9 @@ class CustomUser(AbstractUser):
     bio = models.TextField(blank=True, null=True)  # Biodata for Staff/Admin/Employee
     profile_picture_initials = models.CharField(max_length=5, blank=True, null=True)
     
-    # Unique ID number for Staff and Employees
+    # Unique ID number for Staff, Employees and Clients
     employee_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    client_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
     salary = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, blank=True, help_text="Monthly base salary")
 
     def save(self, *args, **kwargs):
@@ -49,6 +50,19 @@ class CustomUser(AbstractUser):
                 self.employee_id = generated_id
             except Exception:
                 # Fallback if DB queries fail during initial migrations or object creation
+                pass
+
+        # Auto-generate unique ID for CUSTOMER (Client) if empty
+        if not self.client_id and self.role == 'CUSTOMER':
+            prefix = "CLI"
+            try:
+                existing_count = CustomUser.objects.filter(role='CUSTOMER').count()
+                generated_id = f"{prefix}-{1001 + existing_count}"
+                while CustomUser.objects.filter(client_id=generated_id).exists():
+                    existing_count += 1
+                    generated_id = f"{prefix}-{1001 + existing_count}"
+                self.client_id = generated_id
+            except Exception:
                 pass
                 
         super().save(*args, **kwargs)
@@ -83,6 +97,7 @@ class SolarInstallationProject(models.Model):
         related_name='assigned_projects', 
         limit_choices_to={'role': 'STAFF'}
     )
+    project_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
     title = models.CharField(max_length=150, default="Residential Solar Installation")
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='PENDING_APPROVAL')
     advances_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -109,6 +124,17 @@ class SolarInstallationProject(models.Model):
                 raise ValidationError("A project cannot be completed/closed without inverter details (brand, model, serial number, and capacity).")
 
     def save(self, *args, **kwargs):
+        if not self.project_id:
+            prefix = "PRJ"
+            try:
+                existing_count = SolarInstallationProject.objects.count()
+                generated_id = f"{prefix}-{10001 + existing_count}"
+                while SolarInstallationProject.objects.filter(project_id=generated_id).exists():
+                    existing_count += 1
+                    generated_id = f"{prefix}-{10001 + existing_count}"
+                self.project_id = generated_id
+            except Exception:
+                pass
         self.full_clean()
         if self.status == 'COMPLETED' and not self.closing_date:
             from django.utils import timezone
@@ -131,6 +157,45 @@ class Inverter(models.Model):
     model = models.CharField(max_length=100, blank=True, null=True, help_text="Inverter Model")
     serial_number = models.CharField(max_length=100, blank=True, null=True, help_text="Inverter Serial Number (S.No)")
     capacity = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True, help_text="Inverter Capacity in kW")
+    warranty_start_date = models.DateField(blank=True, null=True)
+    warranty_end_date = models.DateField(blank=True, null=True)
+    warranty_terms_agreed = models.BooleanField(default=False)
+    warranty_terms_text = models.TextField(blank=True, null=True, help_text="Warranty terms and conditions agreement text")
+
+    @property
+    def is_warranty_active(self):
+        if self.warranty_start_date and self.warranty_end_date:
+            from django.utils import timezone
+            today = timezone.now().date()
+            return self.warranty_start_date <= today <= self.warranty_end_date
+        return False
+
+    def __str__(self):
+        return f"{self.brand or 'Unknown'} {self.model or ''} ({self.serial_number or 'No S/N'})"
+
+
+class SolarPanel(models.Model):
+    project = models.OneToOneField(
+        SolarInstallationProject,
+        on_delete=models.CASCADE,
+        related_name='solar_panel'
+    )
+    brand = models.CharField(max_length=100, blank=True, null=True, help_text="Solar Panel Brand")
+    model = models.CharField(max_length=100, blank=True, null=True, help_text="Solar Panel Model")
+    serial_number = models.CharField(max_length=100, blank=True, null=True, help_text="Solar Panel Serial Number (S.No)")
+    quantity = models.IntegerField(blank=True, null=True, help_text="Number of Solar Panels")
+    warranty_start_date = models.DateField(blank=True, null=True)
+    warranty_end_date = models.DateField(blank=True, null=True)
+    warranty_terms_agreed = models.BooleanField(default=False)
+    warranty_terms_text = models.TextField(blank=True, null=True, help_text="Warranty terms and conditions agreement text")
+
+    @property
+    def is_warranty_active(self):
+        if self.warranty_start_date and self.warranty_end_date:
+            from django.utils import timezone
+            today = timezone.now().date()
+            return self.warranty_start_date <= today <= self.warranty_end_date
+        return False
 
     def __str__(self):
         return f"{self.brand or 'Unknown'} {self.model or ''} ({self.serial_number or 'No S/N'})"

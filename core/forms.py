@@ -1,5 +1,5 @@
 from django import forms
-from .models import CustomUser, SolarInstallationProject, Complaint, Quotation, ProjectExpense, LeaveRequest, Inspection, Inverter, InspectionLimit
+from .models import CustomUser, SolarInstallationProject, Complaint, Quotation, ProjectExpense, LeaveRequest, Inspection, Inverter, InspectionLimit, SolarPanel
 
 class CustomerSignUpForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'}))
@@ -149,7 +149,7 @@ class AdminCustomerCreationForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number']
+        fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number', 'client_id']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
@@ -157,6 +157,7 @@ class AdminCustomerCreationForm(forms.ModelForm):
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
             'whatsapp_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'client_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional - Auto-generated if left blank'}),
         }
 
     def save(self, commit=True):
@@ -175,7 +176,7 @@ class ProjectForm(forms.ModelForm):
         fields = [
             'customer', 'staff_incharge', 'title', 'status', 
             'advances_paid', 'total_value', 'start_date', 'end_date', 
-            'laborers_count', 'crew_details'
+            'laborers_count', 'crew_details', 'project_id'
         ]
         widgets = {
             'customer': forms.Select(attrs={'class': 'form-select'}),
@@ -188,6 +189,7 @@ class ProjectForm(forms.ModelForm):
             'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'laborers_count': forms.NumberInput(attrs={'class': 'form-control'}),
             'crew_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'e.g. John (Lead), EMP-1002 (Helper)'}),
+            'project_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional - Auto-generated if left blank'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -210,12 +212,16 @@ class StaffProjectUpdateForm(forms.ModelForm):
 class InverterForm(forms.ModelForm):
     class Meta:
         model = Inverter
-        fields = ['brand', 'model', 'serial_number', 'capacity']
+        fields = ['brand', 'model', 'serial_number', 'capacity', 'warranty_start_date', 'warranty_end_date', 'warranty_terms_agreed', 'warranty_terms_text']
         widgets = {
             'brand': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Sungrow'}),
             'model': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. SG5.0RS'}),
             'serial_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. SN12345678'}),
             'capacity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'e.g. 5.00'}),
+            'warranty_start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'warranty_end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'warranty_terms_agreed': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'warranty_terms_text': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Warranty terms and conditions agreement...'}),
         }
 
 
@@ -300,13 +306,14 @@ class EmployeeEditForm(forms.ModelForm):
 class ClientEditForm(forms.ModelForm):
     class Meta:
         model = CustomUser
-        fields = ['email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number']
+        fields = ['email', 'first_name', 'last_name', 'phone_number', 'whatsapp_number', 'client_id']
         widgets = {
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
             'whatsapp_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'client_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional - Auto-generated if left blank'}),
         }
 
 
@@ -396,5 +403,21 @@ class LeaveRequestForm(forms.ModelForm):
         if start_date and end_date and start_date > end_date:
             raise forms.ValidationError("Start date cannot be after end date.")
         return cleaned_data
+
+
+class SolarPanelForm(forms.ModelForm):
+    class Meta:
+        model = SolarPanel
+        fields = ['brand', 'model', 'serial_number', 'quantity', 'warranty_start_date', 'warranty_end_date', 'warranty_terms_agreed', 'warranty_terms_text']
+        widgets = {
+            'brand': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Jinko Solar'}),
+            'model': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Tiger Neo'}),
+            'serial_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. SN87654321'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 12'}),
+            'warranty_start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'warranty_end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'warranty_terms_agreed': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'warranty_terms_text': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Warranty terms and conditions agreement...'}),
+        }
 
 

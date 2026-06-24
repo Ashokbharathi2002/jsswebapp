@@ -105,8 +105,9 @@ def project_pre_save(sender, instance, **kwargs):
 
 @receiver(post_save, sender=SolarInstallationProject)
 def project_post_save(sender, instance, created, **kwargs):
-    from .models import Inverter
+    from .models import Inverter, SolarPanel
     Inverter.objects.get_or_create(project=instance)
+    SolarPanel.objects.get_or_create(project=instance)
 
     if created:
         # Notify Customer

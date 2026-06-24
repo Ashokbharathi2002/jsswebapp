@@ -10,7 +10,7 @@ from decimal import Decimal
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense, LoginLog, LeaveRequest, Notification, Inspection, Inverter, InspectionLimit
+from .models import CustomUser, SolarInstallationProject, Attendance, Complaint, Notice, Quotation, ProjectExpense, LoginLog, LeaveRequest, Notification, Inspection, Inverter, InspectionLimit, SolarPanel
 from .forms import (
     CustomerSignUpForm, 
     StaffCreationForm, 
@@ -29,7 +29,8 @@ from .forms import (
     LeaveRequestForm,
     InspectionPerformForm,
     InverterForm,
-    InspectionLimitForm
+    InspectionLimitForm,
+    SolarPanelForm
 )
 
 def login_view(request):
@@ -198,18 +199,18 @@ def staff_dashboard(request):
 
     staff_user = request.user
     
-    # Track and display:
+    # Track and display (overall stats):
     # 1. Number of clients actively handling (status is NOT Completed/Pending Approval)
-    active_projects = SolarInstallationProject.objects.filter(
+    active_projects_all = SolarInstallationProject.objects.filter(
         staff_incharge=staff_user
     ).exclude(status__in=['COMPLETED', 'PENDING_APPROVAL'])
-    active_clients_count = active_projects.values('customer').distinct().count()
+    active_clients_count = active_projects_all.values('customer').distinct().count()
 
     # 2. Number of clients successfully closed (status IS Completed)
-    closed_projects = SolarInstallationProject.objects.filter(
+    closed_projects_all = SolarInstallationProject.objects.filter(
         staff_incharge=staff_user, status='COMPLETED'
     )
-    closed_clients_count = closed_projects.values('customer').distinct().count()
+    closed_clients_count = closed_projects_all.values('customer').distinct().count()
 
     # 3. Total value of the active projects assigned to them
     total_assigned_value = SolarInstallationProject.objects.filter(
@@ -217,7 +218,16 @@ def staff_dashboard(request):
     ).exclude(status='COMPLETED').aggregate(Sum('total_value'))['total_value__sum'] or 0.00
 
     # 4. Total number of laborers assisting them on-site currently
-    total_laborers = active_projects.aggregate(Sum('laborers_count'))['laborers_count__sum'] or 0
+    total_laborers = active_projects_all.aggregate(Sum('laborers_count'))['laborers_count__sum'] or 0
+
+    # Active/Closed projects for list displaying, possibly filtered by search
+    active_projects = active_projects_all
+    closed_projects = closed_projects_all
+    
+    project_search = request.GET.get('project_search', '').strip()
+    if project_search:
+        active_projects = active_projects.filter(project_id__icontains=project_search)
+        closed_projects = closed_projects.filter(project_id__icontains=project_search)
 
     # Load attendance records
     attendance_records = Attendance.objects.filter(user=staff_user).order_by('-date')
@@ -262,6 +272,17 @@ def staff_dashboard(request):
             else:
                 messages.error(request, "Failed to update inverter details. Please verify inputs.")
             return redirect('staff_dashboard')
+        elif action == 'edit_solar_panel':
+            project_id = request.POST.get('project_id')
+            project = get_object_or_404(SolarInstallationProject, id=project_id, staff_incharge=staff_user)
+            solar_panel, _ = SolarPanel.objects.get_or_create(project=project)
+            form = SolarPanelForm(request.POST, instance=solar_panel)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Updated Solar Panel details for project '{project.title}' successfully!")
+            else:
+                messages.error(request, "Failed to update Solar Panel details. Please verify inputs.")
+            return redirect('staff_dashboard')
         else:
             project_id = request.POST.get('project_id')
             project = get_object_or_404(SolarInstallationProject, id=project_id, staff_incharge=staff_user)
@@ -275,10 +296,12 @@ def staff_dashboard(request):
     forms_list = []
     for proj in active_projects:
         inverter, _ = Inverter.objects.get_or_create(project=proj)
+        solar_panel, _ = SolarPanel.objects.get_or_create(project=proj)
         forms_list.append({
             'project': proj,
             'form': StaffProjectUpdateForm(instance=proj),
-            'inverter_form': InverterForm(instance=inverter)
+            'inverter_form': InverterForm(instance=inverter),
+            'solar_panel_form': SolarPanelForm(instance=solar_panel),
         })
 
     # Project Expenses
@@ -293,7 +316,7 @@ def staff_dashboard(request):
         'total_laborers': total_laborers,
         'active_projects': active_projects,
         'closed_projects': closed_projects,
-        'project_update_forms': forms_list if 'forms_list' in locals() else [],
+        'project_update_forms': forms_list,
         'attendance_records': attendance_records[:15],
         'attendance_rating_pct': rating_pct,
         'rating_pct_overall': rating_pct,
@@ -307,6 +330,7 @@ def staff_dashboard(request):
         'leave_requests': leave_requests,
         'leave_form': leave_form,
         'inspections': Inspection.objects.all().order_by('-scheduled_date'),
+        'project_search': project_search,
     }
     return render(request, 'core/staff_dashboard.html', context)
 
@@ -404,22 +428,40 @@ def admin_dashboard(request):
             Q(employee_id__icontains=worker_search)
         )
 
+    # Client search query
+    client_search = request.GET.get('client_search', '').strip()
+    customers = CustomUser.objects.filter(role='CUSTOMER').order_by('username')
+    if client_search:
+        customers = customers.filter(
+            Q(client_id__icontains=client_search) |
+            Q(phone_number__icontains=client_search) |
+            Q(whatsapp_number__icontains=client_search)
+        )
+
     # Pre-populate Client details list with edit forms
     customer_data_list = []
-    for customer in CustomUser.objects.filter(role='CUSTOMER').order_by('username'):
+    for customer in customers:
         customer_data_list.append({
             'customer': customer,
             'edit_form': ClientEditForm(instance=customer)
         })
+
+    # Project search query
+    project_search = request.GET.get('project_search', '').strip()
+    projects = SolarInstallationProject.objects.all().order_by('-start_date')
+    if project_search:
+        projects = projects.filter(project_id__icontains=project_search)
         
     # Pre-populate Project details list with edit forms
     project_data_list = []
-    for proj in SolarInstallationProject.objects.all().order_by('-start_date'):
+    for proj in projects:
         inverter, _ = Inverter.objects.get_or_create(project=proj)
+        solar_panel, _ = SolarPanel.objects.get_or_create(project=proj)
         project_data_list.append({
             'project': proj,
             'edit_form': ProjectForm(instance=proj),
-            'inverter_form': InverterForm(instance=inverter)
+            'inverter_form': InverterForm(instance=inverter),
+            'solar_panel_form': SolarPanelForm(instance=solar_panel),
         })
 
     # Pre-populate Staff list
@@ -631,6 +673,17 @@ def admin_dashboard(request):
                 messages.success(request, f"Inverter specifications for project '{project.title}' updated successfully!")
             else:
                 messages.error(request, "Failed to update inverter details.")
+            return redirect('admin_dashboard')
+        elif action == 'edit_solar_panel':
+            project_id = request.POST.get('project_id')
+            project = get_object_or_404(SolarInstallationProject, id=project_id)
+            solar_panel, _ = SolarPanel.objects.get_or_create(project=project)
+            form = SolarPanelForm(request.POST, instance=solar_panel)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Solar Panel specifications for project '{project.title}' updated successfully!")
+            else:
+                messages.error(request, "Failed to update solar panel details.")
             return redirect('admin_dashboard')
         elif action == 'mark_attendance':
             date_str = request.POST.get('attendance_date')
@@ -965,22 +1018,40 @@ def superuser_dashboard(request):
             'calculated_salary_monthly': calculated_salary_monthly,
         })
 
+    # Client search query
+    client_search = request.GET.get('client_search', '').strip()
+    customers = CustomUser.objects.filter(role='CUSTOMER').order_by('username')
+    if client_search:
+        customers = customers.filter(
+            Q(client_id__icontains=client_search) |
+            Q(phone_number__icontains=client_search) |
+            Q(whatsapp_number__icontains=client_search)
+        )
+
     # 4. Customer list
     customer_data_list = []
-    for customer in CustomUser.objects.filter(role='CUSTOMER').order_by('username'):
+    for customer in customers:
         customer_data_list.append({
             'customer': customer,
             'edit_form': ClientEditForm(instance=customer)
         })
 
+    # Project search query
+    project_search = request.GET.get('project_search', '').strip()
+    projects = SolarInstallationProject.objects.all().order_by('-start_date')
+    if project_search:
+        projects = projects.filter(project_id__icontains=project_search)
+
     # 5. Project list
     project_data_list = []
-    for proj in SolarInstallationProject.objects.all().order_by('-start_date'):
+    for proj in projects:
         inverter, _ = Inverter.objects.get_or_create(project=proj)
+        solar_panel, _ = SolarPanel.objects.get_or_create(project=proj)
         project_data_list.append({
             'project': proj,
             'edit_form': ProjectForm(instance=proj),
-            'inverter_form': InverterForm(instance=inverter)
+            'inverter_form': InverterForm(instance=inverter),
+            'solar_panel_form': SolarPanelForm(instance=solar_panel),
         })
 
     # Load Attendance list for selected date
@@ -1140,6 +1211,17 @@ def superuser_dashboard(request):
                 messages.success(request, f"Inverter specifications for project '{project.title}' updated successfully!")
             else:
                 messages.error(request, "Failed to update inverter details.")
+            return redirect('superuser_dashboard')
+        elif action == 'edit_solar_panel':
+            project_id = request.POST.get('project_id')
+            project = get_object_or_404(SolarInstallationProject, id=project_id)
+            solar_panel, _ = SolarPanel.objects.get_or_create(project=project)
+            form = SolarPanelForm(request.POST, instance=solar_panel)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Solar Panel specifications for project '{project.title}' updated successfully!")
+            else:
+                messages.error(request, "Failed to update solar panel details.")
             return redirect('superuser_dashboard')
 
         elif action == 'reset_password':
@@ -1452,6 +1534,8 @@ def superuser_dashboard(request):
         'recent_notifications': Notification.objects.all().order_by('-created_at')[:50],
         'inspections': Inspection.objects.all().order_by('-scheduled_date'),
         'all_staff': CustomUser.objects.filter(role='STAFF', is_active=True).order_by('username'),
+        'client_search': client_search,
+        'project_search': project_search,
     }
     return render(request, 'core/superuser_dashboard.html', context)
 
